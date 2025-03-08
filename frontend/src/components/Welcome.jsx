@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 const Welcome = ({ user }) => {
   const navigate = useNavigate()
@@ -25,6 +25,52 @@ const Welcome = ({ user }) => {
         </p>
       </div>
       
+      {/* Feature Cards */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: '20px',
+        marginBottom: '30px'
+      }}>
+        {/* Rankings Card */}
+        <div style={{
+          flex: '1 0 300px',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          padding: '20px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ color: 'var(--primary-color)', marginBottom: '15px' }}>Player Rankings</h3>
+          <p style={{ marginBottom: '20px' }}>
+            View the latest ATP and WTA rankings for the top tennis players in the world.
+          </p>
+          <Link to="/rankings">
+            <button className="btn" style={{ width: '100%' }}>
+              View Rankings
+            </button>
+          </Link>
+        </div>
+        
+        {/* Tournaments Card */}
+        <div style={{
+          flex: '1 0 300px',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          padding: '20px',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ color: 'var(--primary-color)', marginBottom: '15px' }}>Tournaments</h3>
+          <p style={{ marginBottom: '20px' }}>
+            Explore current and upcoming tennis tournaments from around the world.
+          </p>
+          <Link to="/tournaments">
+            <button className="btn" style={{ width: '100%' }}>
+              View Tournaments
+            </button>
+          </Link>
+        </div>
+      </div>
+      
       <div style={{ 
         backgroundColor: 'var(--secondary-color)', 
         padding: '20px', 
@@ -34,7 +80,6 @@ const Welcome = ({ user }) => {
         <h3 style={{ marginBottom: '10px' }}>Coming Soon:</h3>
         <ul style={{ paddingLeft: '20px' }}>
           <li>Live match tracking</li>
-          <li>Player statistics and rankings</li>
           <li>Match prediction contests</li>
           <li>Tennis news and updates</li>
         </ul>
