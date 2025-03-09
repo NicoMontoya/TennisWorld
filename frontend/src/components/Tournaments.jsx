@@ -4,27 +4,45 @@ import axios from 'axios'
 const Tournaments = () => {
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all') // Default to showing all tournaments
+  const [lastUpdated, setLastUpdated] = useState(new Date())
+
+  // Function to fetch tournaments data
+  const fetchTournaments = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+    
+    try {
+      // Fetch from our backend which now uses the tennis API service
+      const response = await axios.get('http://localhost:5001/api/tennis/tournaments')
+      setTournaments(response.data.data.tournaments || [])
+      setLastUpdated(new Date())
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching tournaments:', err)
+      setError('Failed to load tournaments. Please try again later.')
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
-    const fetchTournaments = async () => {
-      setLoading(true)
-      try {
-        // In a real app, we would fetch from our backend which would use the tennis API
-        // For now, we'll use mock data from our backend
-        const response = await axios.get('http://localhost:5001/api/tennis/tournaments')
-        setTournaments(response.data.data.tournaments || [])
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching tournaments:', err)
-        setError('Failed to load tournaments. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchTournaments()
+    // Fetch tournaments immediately
+    fetchTournaments(true)
+    
+    // Set up polling to refresh data every 15 seconds
+    const intervalId = setInterval(() => {
+      fetchTournaments()
+    }, 15000)
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId)
   }, [])
 
   // Filter tournaments based on selected category
@@ -53,9 +71,23 @@ const Tournaments = () => {
 
   return (
     <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px' }}>
-      <h1 className="text-center" style={{ color: 'var(--primary-color)', marginBottom: '30px' }}>
+      <h1 className="text-center" style={{ color: 'var(--primary-color)', marginBottom: '10px' }}>
         Tennis Tournaments
       </h1>
+      <div className="text-center" style={{ marginBottom: '30px' }}>
+        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+          Last updated: {lastUpdated.toLocaleTimeString()}
+          {refreshing && <span style={{ marginLeft: '10px', color: 'var(--primary-color)' }}>● Refreshing...</span>}
+        </p>
+        <button 
+          className="btn btn-sm btn-secondary" 
+          onClick={() => fetchTournaments()}
+          disabled={refreshing}
+          style={{ fontSize: '0.8rem' }}
+        >
+          Refresh Now
+        </button>
+      </div>
 
       {/* Filter buttons */}
       <div style={{ marginBottom: '30px', textAlign: 'center' }}>

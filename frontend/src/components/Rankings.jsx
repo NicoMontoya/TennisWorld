@@ -4,27 +4,45 @@ import axios from 'axios'
 const Rankings = () => {
   const [rankings, setRankings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [type, setType] = useState('ATP') // Default to ATP rankings
+  const [lastUpdated, setLastUpdated] = useState(new Date())
+
+  // Function to fetch rankings data
+  const fetchRankings = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+    
+    try {
+      // Fetch from our backend which now uses the tennis API service
+      const response = await axios.get(`http://localhost:5001/api/tennis/rankings/${type}`)
+      setRankings(response.data.data.rankings || [])
+      setLastUpdated(new Date())
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching rankings:', err)
+      setError('Failed to load rankings. Please try again later.')
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
-    const fetchRankings = async () => {
-      setLoading(true)
-      try {
-        // In a real app, we would fetch from our backend which would use the tennis API
-        // For now, we'll use mock data from our backend
-        const response = await axios.get(`http://localhost:5001/api/tennis/rankings/${type}`)
-        setRankings(response.data.data.rankings || [])
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching rankings:', err)
-        setError('Failed to load rankings. Please try again later.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRankings()
+    // Fetch rankings immediately
+    fetchRankings(true)
+    
+    // Set up polling to refresh data every 10 seconds
+    const intervalId = setInterval(() => {
+      fetchRankings()
+    }, 10000)
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId)
   }, [type])
 
   const handleTypeChange = (newType) => {
@@ -33,9 +51,23 @@ const Rankings = () => {
 
   return (
     <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px' }}>
-      <h1 className="text-center" style={{ color: 'var(--primary-color)', marginBottom: '30px' }}>
+      <h1 className="text-center" style={{ color: 'var(--primary-color)', marginBottom: '10px' }}>
         Tennis Rankings
       </h1>
+      <div className="text-center" style={{ marginBottom: '30px' }}>
+        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+          Last updated: {lastUpdated.toLocaleTimeString()}
+          {refreshing && <span style={{ marginLeft: '10px', color: 'var(--primary-color)' }}>● Refreshing...</span>}
+        </p>
+        <button 
+          className="btn btn-sm btn-secondary" 
+          onClick={() => fetchRankings()}
+          disabled={refreshing}
+          style={{ fontSize: '0.8rem' }}
+        >
+          Refresh Now
+        </button>
+      </div>
 
       <div style={{ marginBottom: '30px', textAlign: 'center' }}>
         <button 
@@ -66,6 +98,7 @@ const Rankings = () => {
                 <th style={tableHeaderStyle}>Player</th>
                 <th style={tableHeaderStyle}>Country</th>
                 <th style={tableHeaderStyle}>Points</th>
+                <th style={tableHeaderStyle}>Movement</th>
               </tr>
             </thead>
             <tbody>
@@ -75,6 +108,15 @@ const Rankings = () => {
                   <td style={tableCellStyle}>{player.player_name}</td>
                   <td style={tableCellStyle}>{player.country}</td>
                   <td style={tableCellStyle}>{player.points.toLocaleString()}</td>
+                  <td style={tableCellStyle}>
+                    {player.movement > 0 ? (
+                      <span style={{ color: 'green' }}>▲ {player.movement}</span>
+                    ) : player.movement < 0 ? (
+                      <span style={{ color: 'red' }}>▼ {Math.abs(player.movement)}</span>
+                    ) : (
+                      <span style={{ color: 'gray' }}>—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
