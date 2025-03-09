@@ -33,20 +33,34 @@ const Rankings = () => {
   }
 
   useEffect(() => {
-    // Fetch rankings immediately
+    // Fetch rankings only when the component mounts or type changes
     fetchRankings(true)
     
-    // Set up polling to refresh data every 10 seconds
-    const intervalId = setInterval(() => {
-      fetchRankings()
-    }, 10000)
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId)
+    // Check if we should refresh based on last update time
+    const lastRefreshTime = localStorage.getItem('rankingsLastRefresh')
+    if (lastRefreshTime) {
+      const lastRefresh = new Date(lastRefreshTime)
+      const now = new Date()
+      const hoursSinceLastRefresh = (now - lastRefresh) / (1000 * 60 * 60)
+      
+      // Only auto-refresh if it's been more than 24 hours
+      if (hoursSinceLastRefresh >= 24) {
+        fetchRankings()
+        localStorage.setItem('rankingsLastRefresh', now.toISOString())
+      }
+    } else {
+      // First time visiting, set the refresh time
+      localStorage.setItem('rankingsLastRefresh', new Date().toISOString())
+    }
   }, [type])
 
   const handleTypeChange = (newType) => {
     setType(newType)
+  }
+  
+  const handleRefresh = () => {
+    fetchRankings()
+    localStorage.setItem('rankingsLastRefresh', new Date().toISOString())
   }
 
   return (
@@ -61,7 +75,7 @@ const Rankings = () => {
         </p>
         <button 
           className="btn btn-sm btn-secondary" 
-          onClick={() => fetchRankings()}
+          onClick={handleRefresh}
           disabled={refreshing}
           style={{ fontSize: '0.8rem' }}
         >

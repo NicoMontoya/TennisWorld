@@ -11,7 +11,7 @@ function App() {
 
   return (
     <div className="container">
-      {user && <Navigation />}
+      <Navigation />
       <Routes>
         <Route 
           path="/" 
@@ -23,7 +23,7 @@ function App() {
         />
         <Route 
           path="/rankings" 
-          element={user ? <Rankings /> : <Navigate to="/" />} 
+          element={<Rankings />} 
         />
         <Route 
           path="/tournaments" 

@@ -33,16 +33,25 @@ const Tournaments = () => {
   }
 
   useEffect(() => {
-    // Fetch tournaments immediately
+    // Fetch tournaments only when the component mounts
     fetchTournaments(true)
     
-    // Set up polling to refresh data every 15 seconds
-    const intervalId = setInterval(() => {
-      fetchTournaments()
-    }, 15000)
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId)
+    // Check if we should refresh based on last update time
+    const lastRefreshTime = localStorage.getItem('tournamentsLastRefresh')
+    if (lastRefreshTime) {
+      const lastRefresh = new Date(lastRefreshTime)
+      const now = new Date()
+      const hoursSinceLastRefresh = (now - lastRefresh) / (1000 * 60 * 60)
+      
+      // Only auto-refresh if it's been more than 24 hours
+      if (hoursSinceLastRefresh >= 24) {
+        fetchTournaments()
+        localStorage.setItem('tournamentsLastRefresh', now.toISOString())
+      }
+    } else {
+      // First time visiting, set the refresh time
+      localStorage.setItem('tournamentsLastRefresh', new Date().toISOString())
+    }
   }, [])
 
   // Filter tournaments based on selected category
@@ -81,7 +90,10 @@ const Tournaments = () => {
         </p>
         <button 
           className="btn btn-sm btn-secondary" 
-          onClick={() => fetchTournaments()}
+          onClick={() => {
+            fetchTournaments()
+            localStorage.setItem('tournamentsLastRefresh', new Date().toISOString())
+          }}
           disabled={refreshing}
           style={{ fontSize: '0.8rem' }}
         >

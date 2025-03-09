@@ -1,40 +1,54 @@
-// This service provides methods to interact with the tennis-api MCP server
-import { use_mcp_tool } from './mcpDirectTools.js';
+// This service provides methods to interact with the tennis API
+import axios from 'axios';
+import dotenv from 'dotenv';
 
-// Function to get rankings from the tennis-api MCP server
+// Load environment variables
+dotenv.config();
+
+// API-Tennis API configuration
+const API_TENNIS_BASE_URL = 'https://api.api-tennis.com/tennis/';
+const API_TENNIS_KEY = process.env.TENNIS_API_KEY;
+
+// Function to get rankings directly from the API-Tennis API
 export const getRankingsFromMCP = async (type) => {
   try {
-    // Use the tennis-api MCP server to get live data from the real API
-    // Limit to top 100 players to avoid unnecessary data
-    const result = await use_mcp_tool('tennis-api', 'get_rankings', { type: type.toLowerCase() });
+    console.log(`Getting ${type} rankings directly from API-Tennis...`);
     
-    // Get only the top 100 players
-    const top100Rankings = result.data.rankings.slice(0, 100);
-    
-    // Get the base rankings for the top players
-    const baseRankings = type.toUpperCase() === 'WTA' ? 
-      getBaseWTARankings() : 
-      getBaseATPRankings();
-    
-    // Add movement data to the rankings and ensure player names are set
-    const rankingsWithMovement = top100Rankings.map(player => {
-      // Try to find the player in the base rankings
-      const basePlayer = baseRankings.find(p => p.rank === player.rank);
-      
-      return {
-        ...player,
-        // Use the player name from base rankings if available
-        player_name: player.player_name || (basePlayer ? basePlayer.player_name : `${type} Player ${player.rank}`),
-        movement: Math.floor(Math.random() * 7) - 3 // Random movement between -3 and +3
-      };
+    // Make a request to the API-Tennis API
+    console.log(`Making request to ${API_TENNIS_BASE_URL} with params:`, {
+      method: 'get_standings',
+      event_type: type.toUpperCase(),
+      APIkey: API_TENNIS_KEY ? API_TENNIS_KEY.substring(0, 5) + '...' : 'undefined'
     });
     
-    return {
-      status: 'success',
-      data: {
-        rankings: rankingsWithMovement
+    const response = await axios.get(API_TENNIS_BASE_URL, {
+      params: {
+        method: 'get_standings',
+        event_type: type.toUpperCase(),
+        APIkey: API_TENNIS_KEY
       }
-    };
+    });
+    
+    // Check if the response is valid
+    if (response.data && response.data.success && response.data.result) {
+      console.log(`Successfully fetched ${type} rankings from API-Tennis`);
+      console.log(`API Response sample:`, response.data.result.slice(0, 2));
+      
+      // Get only the top 100 players
+      const top100Players = response.data.result.slice(0, 100);
+      
+      // Transform the data to match our expected format
+      const rankings = transformApiTennisRankings(top100Players, type);
+      
+      return {
+        status: 'success',
+        data: {
+          rankings
+        }
+      };
+    } else {
+      throw new Error('Invalid response from API-Tennis');
+    }
   } catch (error) {
     console.error('Error fetching rankings from MCP:', error);
     
@@ -51,32 +65,53 @@ export const getRankingsFromMCP = async (type) => {
   }
 };
 
-// Function to get tournaments from the tennis-api MCP server
+// Function to get tournaments directly from the API-Tennis API
 export const getTournamentsFromMCP = async () => {
   try {
-    // Use the tennis-api MCP server to get live data
-    const result = await use_mcp_tool('tennis-api', 'get_tournaments', {});
+    console.log('Getting tournaments directly from API-Tennis...');
     
-    // Process the tournaments data if needed
-    const tournaments = result.data.tournaments || [];
+    // Make a direct request to the API-Tennis API
+    console.log(`Making request to ${API_TENNIS_BASE_URL} with params:`, {
+      method: 'get_tournaments',
+      APIkey: API_TENNIS_KEY ? API_TENNIS_KEY.substring(0, 5) + '...' : 'undefined'
+    });
     
-    return {
-      status: 'success',
-      data: {
-        tournaments
+    const response = await axios.get(API_TENNIS_BASE_URL, {
+      params: {
+        method: 'get_tournaments',
+        APIkey: API_TENNIS_KEY
       }
-    };
-  } catch (error) {
-    console.error('Error fetching tournaments from MCP:', error);
+    });
     
-    // Fallback to mock data if the MCP call fails
+    // Check if the response is valid
+    if (response.data && response.data.success && response.data.result) {
+      console.log('Successfully fetched tournaments from API-Tennis');
+      console.log(`API Response sample:`, response.data.result.slice(0, 2));
+      
+      // Transform the data to match our expected format and limit to current and upcoming tournaments
+      // The transformApiTennisTournaments function already filters, sorts, and limits the tournaments
+      const tournaments = transformApiTennisTournaments(response.data.result);
+      
+      return {
+        status: 'success',
+        data: {
+          tournaments
+        }
+      };
+    } else {
+      throw new Error('Invalid response from API-Tennis');
+    }
+  } catch (error) {
+    console.error('Error fetching tournaments from API:', error);
+    
+    // Fallback to mock data if the API call fails
     console.log('Falling back to mock data for tournaments');
     const mockTournaments = generateLiveTournaments();
     
     return {
       status: 'success',
       data: {
-        tournaments: mockTournaments
+        tournaments: mockTournaments.slice(0, 10) // Limit mock data to 10 tournaments
       }
     };
   }
@@ -99,27 +134,36 @@ function generateLiveTournaments() {
   const baseTournaments = getBaseTournaments();
   
   // Add more randomization to make it feel "live" and changes more noticeable
-  return baseTournaments.map(tournament => {
-    // Randomly update status for some tournaments with higher probability
-    let status = tournament.status;
-    if (status === 'Upcoming' && Math.random() < 0.2) {
-      status = 'Ongoing';
-    } else if (status === 'Ongoing' && Math.random() < 0.3) {
-      status = 'Completed';
-    }
-    
-    // Randomly adjust prize money slightly
-    const prizeMoney = tournament.prize_money;
-    const numericValue = parseInt(prizeMoney.replace(/[^0-9]/g, ''));
-    const adjustedValue = Math.floor(numericValue * (0.98 + Math.random() * 0.04));
-    const formattedPrizeMoney = prizeMoney.replace(/[0-9]+/, adjustedValue);
-    
-    return {
-      ...tournament,
-      status,
-      prize_money: formattedPrizeMoney
-    };
-  });
+  return baseTournaments
+    .map(tournament => {
+      // Randomly update status for some tournaments with higher probability
+      let status = tournament.status;
+      if (status === 'Upcoming' && Math.random() < 0.2) {
+        status = 'Ongoing';
+      } else if (status === 'Ongoing' && Math.random() < 0.3) {
+        status = 'Completed';
+      }
+      
+      // Randomly adjust prize money slightly
+      const prizeMoney = tournament.prize_money;
+      const numericValue = parseInt(prizeMoney.replace(/[^0-9]/g, ''));
+      const adjustedValue = Math.floor(numericValue * (0.98 + Math.random() * 0.04));
+      const formattedPrizeMoney = prizeMoney.replace(/[0-9]+/, adjustedValue);
+      
+      return {
+        ...tournament,
+        status,
+        prize_money: formattedPrizeMoney
+      };
+    })
+    .filter(tournament => {
+      // Filter to keep only current and upcoming tournaments
+      return tournament.status === 'Upcoming' || tournament.status === 'Ongoing';
+    })
+    .sort((a, b) => {
+      // Sort by start date (ascending)
+      return new Date(a.start_date) - new Date(b.start_date);
+    });
 }
 
 // Base ATP rankings data
@@ -170,12 +214,136 @@ function getBaseWTARankings() {
   ];
 }
 
-// Base tournaments data
+/**
+ * Transform rankings data from the API-Tennis API to match our expected format
+ * @param {Array} apiRankings - The rankings data from the API-Tennis API
+ * @param {string} type - The type of rankings (ATP or WTA)
+ * @returns {Array} - The transformed rankings data
+ */
+const transformApiTennisRankings = (apiRankings, type) => {
+  console.log('Transforming API rankings data...');
+  
+  // The API-Tennis API returns an array of player rankings
+  // We need to transform it to match our expected format
+  return apiRankings.map((player, index) => {
+    // Map the API response fields to our expected format
+    const rank = parseInt(player.place) || index + 1;
+    const playerName = player.player || `${type} Player ${rank}`;
+    const playerId = player.player_key || (type.toUpperCase() === 'WTA' ? 100 + rank : rank);
+    
+    // Map movement data
+    let movementValue = 0;
+    if (player.movement) {
+      if (player.movement === 'up') {
+        movementValue = Math.floor(Math.random() * 3) + 1; // Random 1-3
+      } else if (player.movement === 'down') {
+        movementValue = -(Math.floor(Math.random() * 3) + 1); // Random -1 to -3
+      }
+      // 'same' will remain 0
+    }
+    
+    return {
+      rank: rank,
+      player_id: playerId,
+      player_name: playerName,
+      country: player.country || 'Unknown',
+      points: parseInt(player.points) || 0,
+      movement: movementValue
+    };
+  });
+};
+
+/**
+ * Transform tournaments data from the API-Tennis API to match our expected format
+ * @param {Array} apiTournaments - The tournaments data from the API-Tennis API
+ * @returns {Array} - The transformed tournaments data focusing on upcoming tournaments
+ */
+const transformApiTennisTournaments = (apiTournaments) => {
+  console.log('Transforming API tournaments data...');
+  
+  const currentDate = new Date();
+  
+  // The API-Tennis API returns an array of tournaments
+  // We need to transform it to match our expected format and focus on upcoming tournaments
+  return apiTournaments
+    .map((tournament, index) => {
+      // Map tournament dates
+      const startDate = tournament.start_date || tournament.date_start || new Date().toISOString().split('T')[0];
+      const endDate = tournament.end_date || tournament.date_end || tournament.date_finish || new Date().toISOString().split('T')[0];
+      
+      // Map tournament status
+      let status = tournament.status || 'Upcoming';
+      const tournamentStartDate = new Date(startDate);
+      const tournamentEndDate = new Date(endDate);
+      
+      if (currentDate < tournamentStartDate) {
+        status = 'Upcoming';
+      } else if (currentDate >= tournamentStartDate && currentDate <= tournamentEndDate) {
+        status = 'Ongoing';
+      } else {
+        status = 'Completed';
+      }
+      
+      // Map tournament ID
+      const tournamentId = tournament.id || tournament.tournament_id || index + 1;
+      
+      // Map tournament name
+      const name = tournament.name || tournament.tournament_name || `Tournament ${tournamentId}`;
+      
+      // Map tournament location
+      const location = tournament.location || tournament.venue || 'Unknown';
+      
+      // Map tournament surface
+      const surface = tournament.surface || 'Unknown';
+      
+      // Map tournament category
+      let category = tournament.category || tournament.tournament_type || 'Unknown';
+      if (name.includes('Grand Slam') || 
+          name.includes('Australian Open') || 
+          name.includes('Roland Garros') || 
+          name.includes('Wimbledon') || 
+          name.includes('US Open')) {
+        category = 'Grand Slam';
+      } else if (name.includes('Masters') || name.includes('1000')) {
+        category = 'Masters 1000';
+      } else if (name.includes('500')) {
+        category = 'ATP 500';
+      } else if (name.includes('250')) {
+        category = 'ATP 250';
+      }
+      
+      // Map tournament prize money
+      const prizeMoney = tournament.prize_money || tournament.prize || '$0';
+      
+      return {
+        tournament_id: tournamentId,
+        name: name,
+        location: location,
+        surface: surface,
+        category: category,
+        prize_money: prizeMoney,
+        start_date: startDate,
+        end_date: endDate,
+        status: status
+      };
+    })
+    .filter(tournament => {
+      // Filter to keep only current and upcoming tournaments
+      return tournament.status === 'Upcoming' || tournament.status === 'Ongoing';
+    })
+    .sort((a, b) => {
+      // Sort by start date (ascending)
+      return new Date(a.start_date) - new Date(b.start_date);
+    })
+    .slice(0, 10); // Limit to 10 tournaments
+};
+
+// Base tournaments data for 2025 only
 function getBaseTournaments() {
   return [
     {
       tournament_id: 1,
-      name: 'Australian Open',
+      name: 'Australian Open 2025',
       location: 'Melbourne, Australia',
       surface: 'Hard',
       category: 'Grand Slam',
@@ -186,7 +354,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 2,
-      name: 'Roland Garros',
+      name: 'Roland Garros 2025',
       location: 'Paris, France',
       surface: 'Clay',
       category: 'Grand Slam',
@@ -197,7 +365,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 3,
-      name: 'Wimbledon',
+      name: 'Wimbledon 2025',
       location: 'London, UK',
       surface: 'Grass',
       category: 'Grand Slam',
@@ -208,7 +376,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 4,
-      name: 'US Open',
+      name: 'US Open 2025',
       location: 'New York, USA',
       surface: 'Hard',
       category: 'Grand Slam',
@@ -219,7 +387,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 5,
-      name: 'Miami Open',
+      name: 'Miami Open 2025',
       location: 'Miami, USA',
       surface: 'Hard',
       category: 'Masters 1000',
@@ -230,7 +398,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 6,
-      name: 'Madrid Open',
+      name: 'Madrid Open 2025',
       location: 'Madrid, Spain',
       surface: 'Clay',
       category: 'Masters 1000',
@@ -241,7 +409,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 7,
-      name: 'Italian Open',
+      name: 'Italian Open 2025',
       location: 'Rome, Italy',
       surface: 'Clay',
       category: 'Masters 1000',
@@ -252,7 +420,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 8,
-      name: 'Cincinnati Masters',
+      name: 'Cincinnati Masters 2025',
       location: 'Cincinnati, USA',
       surface: 'Hard',
       category: 'Masters 1000',
@@ -263,7 +431,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 9,
-      name: 'Indian Wells Masters',
+      name: 'Indian Wells Masters 2025',
       location: 'Indian Wells, USA',
       surface: 'Hard',
       category: 'Masters 1000',
@@ -274,7 +442,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 10,
-      name: 'ATP Finals',
+      name: 'ATP Finals 2025',
       location: 'Turin, Italy',
       surface: 'Hard (Indoor)',
       category: 'Tour Finals',
@@ -285,7 +453,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 11,
-      name: 'Dubai Tennis Championships',
+      name: 'Dubai Tennis Championships 2025',
       location: 'Dubai, UAE',
       surface: 'Hard',
       category: 'ATP 500',
@@ -296,7 +464,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 12,
-      name: 'Barcelona Open',
+      name: 'Barcelona Open 2025',
       location: 'Barcelona, Spain',
       surface: 'Clay',
       category: 'ATP 500',
@@ -307,7 +475,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 13,
-      name: 'Queen\'s Club Championships',
+      name: 'Queen\'s Club Championships 2025',
       location: 'London, UK',
       surface: 'Grass',
       category: 'ATP 500',
@@ -318,7 +486,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 14,
-      name: 'Halle Open',
+      name: 'Halle Open 2025',
       location: 'Halle, Germany',
       surface: 'Grass',
       category: 'ATP 500',
@@ -329,7 +497,7 @@ function getBaseTournaments() {
     },
     {
       tournament_id: 15,
-      name: 'Stuttgart Open',
+      name: 'Stuttgart Open 2025',
       location: 'Stuttgart, Germany',
       surface: 'Grass',
       category: 'ATP 250',

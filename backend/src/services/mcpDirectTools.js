@@ -105,6 +105,8 @@ const handleGetRankings = async (args) => {
  */
 const fetchRankingsFromApiTennis = async (type) => {
   try {
+    console.log(`Fetching ${type.toUpperCase()} rankings from API-Tennis...`);
+    
     // Make a request to the API-Tennis API
     const response = await axios.get(API_TENNIS_BASE_URL, {
       params: {
@@ -116,8 +118,13 @@ const fetchRankingsFromApiTennis = async (type) => {
     
     // Check if the response is valid
     if (response.data && response.data.success && response.data.result) {
+      console.log(`Successfully fetched ${type.toUpperCase()} rankings from API-Tennis`);
+      
+      // Get only the top 100 players
+      const top100Players = response.data.result.slice(0, 100);
+      
       // Transform the data to match our expected format
-      return transformApiTennisRankings(response.data.result);
+      return transformApiTennisRankings(top100Players, type);
     }
     
     throw new Error('Invalid response from API-Tennis');
@@ -130,33 +137,41 @@ const fetchRankingsFromApiTennis = async (type) => {
 /**
  * Transform rankings data from the API-Tennis API to match our expected format
  * @param {Array} apiRankings - The rankings data from the API-Tennis API
+ * @param {string} type - The type of rankings (ATP or WTA)
  * @returns {Array} - The transformed rankings data
  */
-const transformApiTennisRankings = (apiRankings) => {
+const transformApiTennisRankings = (apiRankings, type) => {
+  // Get the base rankings for the top players to ensure we have proper names
+  const baseRankings = type.toUpperCase() === 'WTA' ? 
+    getBaseWTARankings() : 
+    getBaseATPRankings();
+  
   // The API-Tennis API returns an array of player rankings
   // We need to transform it to match our expected format
   return apiRankings.map((player, index) => {
-    // Get the player name from the mock data based on rank
-    let playerName = `Player ${index + 1}`;
-    if (player.position <= 10) {
-      const mockData = player.position <= 10 ? 
-        (player.type?.toUpperCase() === 'WTA' ? getBaseWTARankings() : getBaseATPRankings()) : 
-        [];
-      
-      const mockPlayer = mockData.find(p => p.rank === player.position);
-      if (mockPlayer) {
-        playerName = mockPlayer.player_name;
-      }
+    // Try to find the player in the base rankings if it's a top player
+    const position = player.position || index + 1;
+    const basePlayer = position <= 10 ? baseRankings.find(p => p.rank === position) : null;
+    
+    // Generate a unique player ID if not provided
+    const playerId = player.player_id || (type.toUpperCase() === 'WTA' ? 100 + position : position);
+    
+    // Determine the player name
+    let playerName = player.player_name || player.name;
+    if (!playerName && basePlayer) {
+      playerName = basePlayer.player_name;
+    } else if (!playerName) {
+      playerName = `${type.toUpperCase()} Player ${position}`;
     }
     
     return {
-      rank: player.position || index + 1,
-      player_id: player.player_id || index + 1,
-      // Use the player name from mock data or fallback
-      player_name: player.player_name || player.name || playerName,
-      country: player.country || 'Unknown',
+      rank: position,
+      player_id: playerId,
+      player_name: playerName,
+      country: player.country || (basePlayer ? basePlayer.country : 'Unknown'),
       points: parseInt(player.points) || 0,
-      movement: parseInt(player.movement) || 0
+      // Add random movement data if not provided by the API
+      movement: player.movement !== undefined ? parseInt(player.movement) : Math.floor(Math.random() * 7) - 3
     };
   });
 };
@@ -273,22 +288,84 @@ const fetchTournamentsFromApiTennis = async () => {
 /**
  * Transform tournaments data from the API-Tennis API to match our expected format
  * @param {Array} apiTournaments - The tournaments data from the API-Tennis API
- * @returns {Array} - The transformed tournaments data
+ * @returns {Array} - The transformed tournaments data focusing on upcoming tournaments
  */
 const transformApiTennisTournaments = (apiTournaments) => {
+  const currentDate = new Date();
+  
   // The API-Tennis API returns an array of tournaments
-  // We need to transform it to match our expected format
-  return apiTournaments.map((tournament, index) => ({
-    tournament_id: tournament.tournament_id || index + 1,
-    name: tournament.name || `Tournament ${index + 1}`,
-    location: tournament.location || 'Unknown',
-    surface: tournament.surface || 'Unknown',
-    category: tournament.category || 'Unknown',
-    prize_money: tournament.prize_money || '$0',
-    start_date: tournament.start_date || new Date().toISOString().split('T')[0],
-    end_date: tournament.end_date || new Date().toISOString().split('T')[0],
-    status: tournament.status || 'Upcoming'
-  }));
+  // We need to transform it to match our expected format and focus on upcoming tournaments
+  return apiTournaments
+    .map((tournament, index) => {
+      // Map tournament dates
+      const startDate = tournament.start_date || tournament.date_start || new Date().toISOString().split('T')[0];
+      const endDate = tournament.end_date || tournament.date_end || tournament.date_finish || new Date().toISOString().split('T')[0];
+      
+      // Map tournament status
+      let status = tournament.status || 'Upcoming';
+      const tournamentStartDate = new Date(startDate);
+      const tournamentEndDate = new Date(endDate);
+      
+      if (currentDate < tournamentStartDate) {
+        status = 'Upcoming';
+      } else if (currentDate >= tournamentStartDate && currentDate <= tournamentEndDate) {
+        status = 'Ongoing';
+      } else {
+        status = 'Completed';
+      }
+      
+      // Map tournament ID
+      const tournamentId = tournament.id || tournament.tournament_id || index + 1;
+      
+      // Map tournament name
+      const name = tournament.name || tournament.tournament_name || `Tournament ${tournamentId}`;
+      
+      // Map tournament location
+      const location = tournament.location || tournament.venue || 'Unknown';
+      
+      // Map tournament surface
+      const surface = tournament.surface || 'Unknown';
+      
+      // Map tournament category
+      let category = tournament.category || tournament.tournament_type || 'Unknown';
+      if (name.includes('Grand Slam') || 
+          name.includes('Australian Open') || 
+          name.includes('Roland Garros') || 
+          name.includes('Wimbledon') || 
+          name.includes('US Open')) {
+        category = 'Grand Slam';
+      } else if (name.includes('Masters') || name.includes('1000')) {
+        category = 'Masters 1000';
+      } else if (name.includes('500')) {
+        category = 'ATP 500';
+      } else if (name.includes('250')) {
+        category = 'ATP 250';
+      }
+      
+      // Map tournament prize money
+      const prizeMoney = tournament.prize_money || tournament.prize || '$0';
+      
+      return {
+        tournament_id: tournamentId,
+        name: name,
+        location: location,
+        surface: surface,
+        category: category,
+        prize_money: prizeMoney,
+        start_date: startDate,
+        end_date: endDate,
+        status: status
+      };
+    })
+    .filter(tournament => {
+      // Filter to keep only current and upcoming tournaments
+      return tournament.status === 'Upcoming' || tournament.status === 'Ongoing';
+    })
+    .sort((a, b) => {
+      // Sort by start date (ascending)
+      return new Date(a.start_date) - new Date(b.start_date);
+    })
+    .slice(0, 10); // Limit to 10 tournaments
 };
 
 /**
@@ -385,14 +462,15 @@ const getMockRankings = (type) => {
 };
 
 /**
- * Get mock tournaments data
- * @returns {Array} - An array of tournaments
+ * Get mock tournaments data for 2025 only
+ * @returns {Array} - An array of tournaments for 2025
  */
 const getMockTournaments = () => {
+  // Only include tournaments for 2025
   const baseTournaments = [
     {
       tournament_id: 1,
-      name: 'Australian Open',
+      name: 'Australian Open 2025',
       location: 'Melbourne, Australia',
       surface: 'Hard',
       category: 'Grand Slam',
@@ -403,7 +481,7 @@ const getMockTournaments = () => {
     },
     {
       tournament_id: 2,
-      name: 'Roland Garros',
+      name: 'Roland Garros 2025',
       location: 'Paris, France',
       surface: 'Clay',
       category: 'Grand Slam',
@@ -414,7 +492,7 @@ const getMockTournaments = () => {
     },
     {
       tournament_id: 3,
-      name: 'Wimbledon',
+      name: 'Wimbledon 2025',
       location: 'London, UK',
       surface: 'Grass',
       category: 'Grand Slam',
@@ -425,7 +503,7 @@ const getMockTournaments = () => {
     },
     {
       tournament_id: 4,
-      name: 'US Open',
+      name: 'US Open 2025',
       location: 'New York, USA',
       surface: 'Hard',
       category: 'Grand Slam',
@@ -436,7 +514,7 @@ const getMockTournaments = () => {
     },
     {
       tournament_id: 5,
-      name: 'Miami Open',
+      name: 'Miami Open 2025',
       location: 'Miami, USA',
       surface: 'Hard',
       category: 'Masters 1000',
@@ -444,31 +522,63 @@ const getMockTournaments = () => {
       start_date: '2025-03-17',
       end_date: '2025-03-30',
       status: 'Upcoming'
+    },
+    {
+      tournament_id: 6,
+      name: 'Madrid Open 2025',
+      location: 'Madrid, Spain',
+      surface: 'Clay',
+      category: 'Masters 1000',
+      prize_money: '$7,500,000',
+      start_date: '2025-04-28',
+      end_date: '2025-05-11',
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 7,
+      name: 'Italian Open 2025',
+      location: 'Rome, Italy',
+      surface: 'Clay',
+      category: 'Masters 1000',
+      prize_money: '$7,000,000',
+      start_date: '2025-05-12',
+      end_date: '2025-05-19',
+      status: 'Upcoming'
     }
   ];
   
   // Add some randomization to make it feel "live"
-  return baseTournaments.map(tournament => {
-    // Randomly update status for some tournaments
-    let status = tournament.status;
-    if (status === 'Upcoming' && Math.random() < 0.2) {
-      status = 'Ongoing';
-    } else if (status === 'Ongoing' && Math.random() < 0.3) {
-      status = 'Completed';
-    }
-    
-    // Randomly adjust prize money slightly
-    const prizeMoney = tournament.prize_money;
-    const numericValue = parseInt(prizeMoney.replace(/[^0-9]/g, ''));
-    const adjustedValue = Math.floor(numericValue * (0.98 + Math.random() * 0.04));
-    const formattedPrizeMoney = prizeMoney.replace(/[0-9]+/, adjustedValue);
-    
-    return {
-      ...tournament,
-      status,
-      prize_money: formattedPrizeMoney
-    };
-  });
+  return baseTournaments
+    .map(tournament => {
+      // Randomly update status for some tournaments
+      let status = tournament.status;
+      if (status === 'Upcoming' && Math.random() < 0.2) {
+        status = 'Ongoing';
+      } else if (status === 'Ongoing' && Math.random() < 0.3) {
+        status = 'Completed';
+      }
+      
+      // Randomly adjust prize money slightly
+      const prizeMoney = tournament.prize_money;
+      const numericValue = parseInt(prizeMoney.replace(/[^0-9]/g, ''));
+      const adjustedValue = Math.floor(numericValue * (0.98 + Math.random() * 0.04));
+      const formattedPrizeMoney = prizeMoney.replace(/[0-9]+/, adjustedValue);
+      
+      return {
+        ...tournament,
+        status,
+        prize_money: formattedPrizeMoney
+      };
+    })
+    .filter(tournament => {
+      // Filter to keep only current and upcoming tournaments
+      return tournament.status === 'Upcoming' || tournament.status === 'Ongoing';
+    })
+    .sort((a, b) => {
+      // Sort by start date (ascending)
+      return new Date(a.start_date) - new Date(b.start_date);
+    })
+    .slice(0, 10); // Limit to 10 tournaments
 };
 
 /**
@@ -521,9 +631,9 @@ const getMockHeadToHead = (firstPlayerId, secondPlayerId) => {
     total_matches: totalMatches,
     matches: Array.from({ length: totalMatches }, (_, i) => ({
       match_id: i + 1,
-      tournament: ['Australian Open', 'Roland Garros', 'Wimbledon', 'US Open'][Math.floor(Math.random() * 4)],
+      tournament: ['Australian Open 2025', 'Roland Garros 2025', 'Wimbledon 2025', 'US Open 2025'][Math.floor(Math.random() * 4)],
       round: ['First Round', 'Second Round', 'Quarter-final', 'Semi-final', 'Final'][Math.floor(Math.random() * 5)],
-      date: new Date(2020 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
+      date: '2025-' + new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0].substring(5),
       winner: Math.random() > 0.5 ? firstPlayerId : secondPlayerId,
       score: `${Math.floor(Math.random() * 7)}-${Math.floor(Math.random() * 6)}, ${Math.floor(Math.random() * 7)}-${Math.floor(Math.random() * 6)}, ${Math.floor(Math.random() * 7)}-${Math.floor(Math.random() * 6)}`
     }))
@@ -531,17 +641,23 @@ const getMockHeadToHead = (firstPlayerId, secondPlayerId) => {
 };
 
 /**
- * Get mock matches data
+ * Get mock matches data for 2025
  * @param {string} startDate - The start date for the matches
  * @param {string} endDate - The end date for the matches
- * @returns {Array} - An array of matches
+ * @returns {Array} - An array of matches for 2025
  */
 const getMockMatches = (startDate, endDate) => {
   const numMatches = Math.floor(Math.random() * 20) + 5;
   
+  // Ensure the date is in 2025
+  let matchDate = startDate || '2025-03-09';
+  if (!matchDate.startsWith('2025-')) {
+    matchDate = '2025-03-09'; // Default to current date in 2025
+  }
+  
   return Array.from({ length: numMatches }, (_, i) => ({
     match_id: i + 1,
-    tournament: ['Australian Open', 'Roland Garros', 'Wimbledon', 'US Open'][Math.floor(Math.random() * 4)],
+    tournament: ['Australian Open 2025', 'Roland Garros 2025', 'Wimbledon 2025', 'US Open 2025'][Math.floor(Math.random() * 4)],
     round: ['First Round', 'Second Round', 'Quarter-final', 'Semi-final', 'Final'][Math.floor(Math.random() * 5)],
     date: startDate || new Date().toISOString().split('T')[0],
     player1: {
