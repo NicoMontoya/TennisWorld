@@ -11,7 +11,7 @@ import { use_mcp_tool } from './mcpToolWrapper.js';
 
 // Create Express app for the MCP proxy
 const app = express();
-const PORT = process.env.MCP_PROXY_PORT || 3001;
+const PORT = process.env.MCP_PROXY_PORT || 3002;
 
 // Middleware
 app.use(cors());

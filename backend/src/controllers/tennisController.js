@@ -1,6 +1,6 @@
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
-import { getTournamentDetails } from '../services/tennisApiService.js';
+import { getTournamentDetails, getRankings, getTournaments } from '../services/tennisApiService.js';
 
 // @desc    Get player rankings by type (ATP or WTA)
 // @route   GET /api/tennis/rankings/:type
@@ -17,15 +17,21 @@ export const getRankings = async (req, res) => {
       });
     }
     
-    // Get rankings from database
-    const rankings = await Player.find({ type })
-      .sort({ rank: 1 })
-      .limit(100);
+    // Get rankings directly from the API
+    console.log(`Getting ${type} rankings from API...`);
+    const response = await getRankings(type);
+    
+    if (response.status === 'error') {
+      return res.status(500).json({
+        status: 'error',
+        message: response.message || 'Error fetching rankings'
+      });
+    }
     
     res.json({
       status: 'success',
       data: {
-        rankings
+        rankings: response.data.rankings
       }
     });
   } catch (error) {
@@ -73,13 +79,21 @@ export const getPlayerById = async (req, res) => {
 // @access  Public
 export const getTournaments = async (req, res) => {
   try {
-    const tournaments = await Tournament.find()
-      .sort({ start_date: 1 });
+    // Get tournaments directly from the API
+    console.log('Getting tournaments from API...');
+    const response = await getTournaments();
+    
+    if (response.status === 'error') {
+      return res.status(500).json({
+        status: 'error',
+        message: response.message || 'Error fetching tournaments'
+      });
+    }
     
     res.json({
       status: 'success',
       data: {
-        tournaments
+        tournaments: response.data.tournaments
       }
     });
   } catch (error) {

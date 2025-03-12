@@ -139,9 +139,25 @@ export const getTournamentDetails = async (tournamentId) => {
     // Get live scores for the tournament
     const liveScoresResponse = await getLiveScores(tournamentId);
     
-    // Get the tournament info
-    const tournaments = await getTournamentsFromMCP();
-    let tournament = tournaments.data.tournaments.find(t => t.tournament_id.toString() === tournamentId.toString());
+    // Get the tournament info directly from the API-Tennis API
+    let tournament = null;
+    try {
+      console.log(`Getting tournament info for ${tournamentId} directly from API-Tennis...`);
+      const response = await axios.get(API_TENNIS_BASE_URL, {
+        params: {
+          method: 'get_tournaments',
+          APIkey: API_TENNIS_KEY
+        }
+      });
+      
+      if (response.data && response.data.success && response.data.result) {
+        console.log(`Successfully fetched tournaments from API-Tennis`);
+        const transformedTournaments = transformApiTennisTournaments(response.data.result);
+        tournament = transformedTournaments.find(t => t.tournament_id.toString() === tournamentId.toString());
+      }
+    } catch (err) {
+      console.error('Error fetching tournament info from API-Tennis:', err);
+    }
     
     // If tournament not found in API response, use base tournament data
     if (!tournament) {
@@ -153,6 +169,29 @@ export const getTournamentDetails = async (tournamentId) => {
     if (!tournament) {
       console.log(`Tournament ${tournamentId} not found in base data, creating mock tournament`);
       tournament = createMockTournament(tournamentId);
+    }
+    
+    // Special handling for Indian Wells tournament
+    if (tournament && (tournament.name.includes('Indian Wells') || tournamentId.toString() === '9')) {
+      console.log('Enhancing Indian Wells tournament data with more detailed information');
+      
+      // Ensure we have the correct tournament ID for Indian Wells
+      const indianWellsId = tournamentId.toString() === '9' ? tournamentId : '9';
+      
+      // Get more detailed fixtures for Indian Wells
+      const indianWellsFixtures = generateDetailedIndianWellsFixtures(indianWellsId);
+      
+      // Get more detailed live scores for Indian Wells
+      const indianWellsLiveScores = generateDetailedIndianWellsLiveScores(indianWellsId);
+      
+      return {
+        status: 'success',
+        data: {
+          tournament,
+          fixtures: indianWellsFixtures,
+          livescores: indianWellsLiveScores
+        }
+      };
     }
     
     return {
@@ -172,20 +211,168 @@ export const getTournamentDetails = async (tournamentId) => {
   }
 };
 
-// Helper function to create a mock tournament
-function createMockTournament(tournamentId) {
-  const currentYear = new Date().getFullYear();
-  return {
-    tournament_id: tournamentId,
-    name: `Tournament ${tournamentId}`,
-    location: 'Unknown Location',
-    surface: 'Hard',
-    category: 'ATP Tour',
-    prize_money: '$1,000,000',
-    start_date: `${currentYear}-06-01`,
-    end_date: `${currentYear}-06-07`,
-    status: 'Upcoming'
-  };
+// Function to generate detailed fixtures for Indian Wells tournament
+function generateDetailedIndianWellsFixtures(tournamentId) {
+  console.log(`Generating detailed fixtures for Indian Wells tournament (ID: ${tournamentId})`);
+  
+  // Real top players for Indian Wells
+  const topPlayers = [
+    { player_key: 1, player_name: 'Novak Djokovic', country: 'SRB', seed: 1 },
+    { player_key: 2, player_name: 'Carlos Alcaraz', country: 'ESP', seed: 2 },
+    { player_key: 3, player_name: 'Jannik Sinner', country: 'ITA', seed: 3 },
+    { player_key: 4, player_name: 'Daniil Medvedev', country: 'RUS', seed: 4 },
+    { player_key: 5, player_name: 'Alexander Zverev', country: 'GER', seed: 5 },
+    { player_key: 6, player_name: 'Andrey Rublev', country: 'RUS', seed: 6 },
+    { player_key: 7, player_name: 'Hubert Hurkacz', country: 'POL', seed: 7 },
+    { player_key: 8, player_name: 'Casper Ruud', country: 'NOR', seed: 8 },
+    { player_key: 9, player_name: 'Grigor Dimitrov', country: 'BUL', seed: 9 },
+    { player_key: 10, player_name: 'Alex de Minaur', country: 'AUS', seed: 10 },
+    { player_key: 11, player_name: 'Stefanos Tsitsipas', country: 'GRE', seed: 11 },
+    { player_key: 12, player_name: 'Taylor Fritz', country: 'USA', seed: 12 },
+    { player_key: 13, player_name: 'Tommy Paul', country: 'USA', seed: 13 },
+    { player_key: 14, player_name: 'Ben Shelton', country: 'USA', seed: 14 },
+    { player_key: 15, player_name: 'Karen Khachanov', country: 'RUS', seed: 15 },
+    { player_key: 16, player_name: 'Frances Tiafoe', country: 'USA', seed: 16 }
+  ];
+  
+  // Generate additional players to fill the draw
+  const additionalPlayers = [];
+  for (let i = 1; i <= 48; i++) {
+    additionalPlayers.push({
+      player_key: i + 100,
+      player_name: `Player ${i + 100}`,
+      country: ['USA', 'ESP', 'FRA', 'GBR', 'AUS', 'GER', 'ITA', 'ARG', 'CAN', 'JPN'][i % 10],
+      seed: null
+    });
+  }
+  
+  // Combine top players and additional players
+  const allPlayers = [...topPlayers, ...additionalPlayers];
+  
+  // Rounds in the tournament
+  const rounds = [
+    'Round of 64',
+    'Round of 32',
+    'Round of 16',
+    'Quarter-final',
+    'Semi-final',
+    'Final'
+  ];
+  
+  // Get the tournament from our base data
+  const tournament = getBaseTournaments().find(t => t.tournament_id.toString() === tournamentId.toString());
+  
+  if (!tournament) {
+    return [];
+  }
+  
+  // Generate fixtures for each round
+  const fixtures = [];
+  
+  // For simplicity, just generate some sample fixtures
+  for (let i = 0; i < 20; i++) {
+    const player1 = allPlayers[Math.floor(Math.random() * allPlayers.length)];
+    const player2 = allPlayers[Math.floor(Math.random() * allPlayers.length)];
+    
+    if (player1.player_key === player2.player_key) continue;
+    
+    const round = rounds[Math.floor(Math.random() * rounds.length)];
+    const isCompleted = Math.random() > 0.5;
+    
+    fixtures.push({
+      event_key: `${tournamentId}${i}`,
+      event_date: tournament.start_date,
+      event_time: '12:00',
+      event_first_player: player1.seed ? `${player1.player_name} [${player1.seed}]` : player1.player_name,
+      first_player_key: player1.player_key,
+      event_second_player: player2.seed ? `${player2.player_name} [${player2.seed}]` : player2.player_name,
+      second_player_key: player2.player_key,
+      event_final_result: isCompleted ? (Math.random() > 0.5 ? '2 - 0' : '0 - 2') : '-',
+      event_game_result: '-',
+      event_serve: null,
+      event_winner: isCompleted ? (Math.random() > 0.5 ? 'First Player' : 'Second Player') : null,
+      event_status: isCompleted ? 'Finished' : 'Not Started',
+      event_type_type: tournament.category,
+      tournament_name: tournament.name,
+      tournament_key: tournamentId,
+      tournament_round: round,
+      tournament_season: '2025',
+      event_live: '0',
+      event_qualification: 'False',
+      player1_country: player1.country,
+      player2_country: player2.country
+    });
+  }
+  
+  return fixtures;
+}
+
+// Function to generate detailed live scores for Indian Wells tournament
+function generateDetailedIndianWellsLiveScores(tournamentId) {
+  console.log(`Generating detailed live scores for Indian Wells tournament (ID: ${tournamentId})`);
+  
+  // Get the tournament from our base data
+  const tournament = getBaseTournaments().find(t => t.tournament_id.toString() === tournamentId.toString());
+  
+  if (!tournament) {
+    return [];
+  }
+  
+  // Real players for Indian Wells live matches
+  const realPlayers = [
+    { player_key: 1, player_name: 'Novak Djokovic', country: 'SRB', seed: 1 },
+    { player_key: 2, player_name: 'Carlos Alcaraz', country: 'ESP', seed: 2 },
+    { player_key: 3, player_name: 'Jannik Sinner', country: 'ITA', seed: 3 },
+    { player_key: 4, player_name: 'Daniil Medvedev', country: 'RUS', seed: 4 }
+  ];
+  
+  // Generate 2-3 live matches
+  const numLiveMatches = Math.floor(Math.random() * 2) + 2;
+  const liveScores = [];
+  
+  for (let i = 0; i < numLiveMatches; i++) {
+    // Select two different players
+    const player1 = realPlayers[i % realPlayers.length];
+    const player2 = realPlayers[(i + 1) % realPlayers.length];
+    
+    // Generate scores
+    const scores = [
+      { score_first: '6', score_second: '4', score_set: '1' },
+      { score_first: '3', score_second: '5', score_set: '2' }
+    ];
+    
+    liveScores.push({
+      event_key: `live${tournamentId}${i}`,
+      event_date: new Date().toISOString().split('T')[0],
+      event_time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+      event_first_player: `${player1.player_name} [${player1.seed}]`,
+      first_player_key: player1.player_key,
+      event_second_player: `${player2.player_name} [${player2.seed}]`,
+      second_player_key: player2.player_key,
+      event_final_result: '1 - 0',
+      event_game_result: '30 - 15',
+      event_serve: 'First Player',
+      event_winner: null,
+      event_status: 'Set 2',
+      event_type_type: tournament.category,
+      tournament_name: tournament.name,
+      tournament_key: tournamentId,
+      tournament_round: 'Quarter-final',
+      tournament_season: '2025',
+      event_live: '1',
+      event_qualification: 'False',
+      scores: scores,
+      player1_country: player1.country,
+      player2_country: player2.country,
+      current_game: {
+        score: '30 - 15',
+        server: player1.player_name,
+        points: '3-5, 30-15'
+      }
+    });
+  }
+  
+  return liveScores;
 }
 
 // Helper function to generate mock fixtures data
@@ -210,89 +397,38 @@ function generateMockFixtures(tournamentKey) {
     });
   }
   
-  // Generate fixtures for each round
-  let remainingPlayers = [...players];
-  
-  rounds.forEach((round, roundIndex) => {
-    const matchesInRound = remainingPlayers.length / 2;
-    const newRemainingPlayers = [];
+  // For simplicity, just generate some sample fixtures
+  for (let i = 0; i < 20; i++) {
+    const player1 = players[Math.floor(Math.random() * players.length)];
+    const player2 = players[Math.floor(Math.random() * players.length)];
     
-    for (let i = 0; i < matchesInRound; i++) {
-      const player1 = remainingPlayers[i * 2];
-      const player2 = remainingPlayers[i * 2 + 1];
-      
-      // Determine if the match is completed or upcoming based on round index
-      // Earlier rounds are more likely to be completed
-      const matchCompleted = roundIndex < 3 || (roundIndex === 3 && i < matchesInRound / 2);
-      
-      // For completed matches, determine the winner
-      const winner = matchCompleted ? (Math.random() > 0.5 ? 'First Player' : 'Second Player') : null;
-      
-      // Generate scores for completed matches
-      const scores = [];
-      if (matchCompleted) {
-        const numSets = Math.random() > 0.7 ? 3 : 2;
-        for (let s = 1; s <= numSets; s++) {
-          let score1, score2;
-          if (s === numSets) {
-            score1 = winner === 'First Player' ? 6 : Math.floor(Math.random() * 5);
-            score2 = winner === 'Second Player' ? 6 : Math.floor(Math.random() * 5);
-          } else {
-            score1 = Math.floor(Math.random() * 7);
-            score2 = Math.floor(Math.random() * 7);
-            if (score1 === score2) {
-              score1 = 6;
-              score2 = 4;
-            }
-            if (score1 < score2 && winner === 'First Player') {
-              [score1, score2] = [score2, score1];
-            } else if (score1 > score2 && winner === 'Second Player') {
-              [score1, score2] = [score2, score1];
-            }
-          }
-          scores.push({
-            score_first: score1.toString(),
-            score_second: score2.toString(),
-            score_set: s.toString()
-          });
-        }
-      }
-      
-      // Add the fixture
-      fixtures.push({
-        event_key: `${tournamentKey}${roundIndex}${i}`,
-        event_date: tournament.start_date,
-        event_time: '12:00',
-        event_first_player: player1.player_name,
-        first_player_key: player1.player_key,
-        event_second_player: player2.player_name,
-        second_player_key: player2.player_key,
-        event_final_result: matchCompleted ? (winner === 'First Player' ? '2 - 0' : '0 - 2') : '-',
-        event_game_result: '-',
-        event_serve: null,
-        event_winner: winner,
-        event_status: matchCompleted ? 'Finished' : 'Not Started',
-        event_type_type: tournament.category,
-        tournament_name: tournament.name,
-        tournament_key: tournamentKey,
-        tournament_round: round,
-        tournament_season: '2025',
-        event_live: '0',
-        event_qualification: 'False',
-        scores: scores
-      });
-      
-      // Add the winner to the next round
-      if (matchCompleted) {
-        newRemainingPlayers.push(winner === 'First Player' ? player1 : player2);
-      }
-    }
+    if (player1.player_key === player2.player_key) continue;
     
-    // Update remaining players for the next round
-    if (matchCompleted) {
-      remainingPlayers = newRemainingPlayers;
-    }
-  });
+    const round = rounds[Math.floor(Math.random() * rounds.length)];
+    const isCompleted = Math.random() > 0.5;
+    
+    fixtures.push({
+      event_key: `${tournamentKey}${i}`,
+      event_date: tournament.start_date,
+      event_time: '12:00',
+      event_first_player: player1.player_name,
+      first_player_key: player1.player_key,
+      event_second_player: player2.player_name,
+      second_player_key: player2.player_key,
+      event_final_result: isCompleted ? (Math.random() > 0.5 ? '2 - 0' : '0 - 2') : '-',
+      event_game_result: '-',
+      event_serve: null,
+      event_winner: isCompleted ? (Math.random() > 0.5 ? 'First Player' : 'Second Player') : null,
+      event_status: isCompleted ? 'Finished' : 'Not Started',
+      event_type_type: tournament.category,
+      tournament_name: tournament.name,
+      tournament_key: tournamentKey,
+      tournament_round: round,
+      tournament_season: '2025',
+      event_live: '0',
+      event_qualification: 'False'
+    });
+  }
   
   return fixtures;
 }
@@ -379,7 +515,7 @@ function generateMockLiveScores(tournamentKey) {
 }
 
 // Function to get rankings directly from the API-Tennis API
-export const getRankingsFromMCP = async (type) => {
+export const getRankings = async (type) => {
   try {
     console.log(`Getting ${type} rankings directly from API-Tennis...`);
     
@@ -435,53 +571,32 @@ export const getRankingsFromMCP = async (type) => {
 };
 
 // Function to get tournaments directly from the API-Tennis API
-export const getTournamentsFromMCP = async () => {
+export const getTournaments = async () => {
   try {
-    console.log('Getting tournaments directly from API-Tennis...');
+    console.log('Getting tournaments data...');
     
-    // Make a direct request to the API-Tennis API
-    console.log(`Making request to ${API_TENNIS_BASE_URL} with params:`, {
-      method: 'get_tournaments',
-      APIkey: API_TENNIS_KEY ? API_TENNIS_KEY.substring(0, 5) + '...' : 'undefined'
+    // Use mock data directly instead of API data
+    console.log('Using mock tournament data for Grand Slams and Masters 1000 tournaments');
+    let mockTournaments = generateLiveTournaments();
+    
+    // Filter to only include ATP 1000 tournaments and Grand Slams
+    mockTournaments = mockTournaments.filter(tournament => {
+      return tournament.category === 'Grand Slam' || tournament.category === 'Masters 1000';
     });
     
-    const response = await axios.get(API_TENNIS_BASE_URL, {
-      params: {
-        method: 'get_tournaments',
-        APIkey: API_TENNIS_KEY
-      }
-    });
-    
-    // Check if the response is valid
-    if (response.data && response.data.success && response.data.result) {
-      console.log('Successfully fetched tournaments from API-Tennis');
-      console.log(`API Response sample:`, response.data.result.slice(0, 2));
-      
-      // Transform the data to match our expected format and limit to current and upcoming tournaments
-      // The transformApiTennisTournaments function already filters, sorts, and limits the tournaments
-      const tournaments = transformApiTennisTournaments(response.data.result);
-      
-      return {
-        status: 'success',
-        data: {
-          tournaments
-        }
-      };
-    } else {
-      throw new Error('Invalid response from API-Tennis');
-    }
-  } catch (error) {
-    console.error('Error fetching tournaments from API:', error);
-    
-    // Fallback to mock data if the API call fails
-    console.log('Falling back to mock data for tournaments');
-    const mockTournaments = generateLiveTournaments();
+    console.log(`Found ${mockTournaments.length} Grand Slam and Masters 1000 tournaments`);
     
     return {
       status: 'success',
       data: {
-        tournaments: mockTournaments.slice(0, 20) // Limit mock data to 20 tournaments
+        tournaments: mockTournaments
       }
+    };
+  } catch (error) {
+    console.error('Error generating tournament data:', error);
+    return {
+      status: 'error',
+      message: 'Failed to generate tournament data'
     };
   }
 };
@@ -529,13 +644,301 @@ function generateLiveTournaments() {
       // Filter to keep only 2025 tournaments that are current or upcoming
       const tournamentYear = new Date(tournament.start_date).getFullYear();
       const isValid = (tournament.status === 'Upcoming' || tournament.status === 'Ongoing') && tournamentYear === 2025;
-      console.log(`Tournament ${tournament.name}, year: ${tournamentYear}, status: ${tournament.status}, isValid: ${isValid}`);
       return isValid;
     })
     .sort((a, b) => {
       // Sort by start date (ascending)
       return new Date(a.start_date) - new Date(b.start_date);
     });
+}
+
+// Function to transform API Tennis tournaments data
+function transformApiTennisTournaments(apiTournaments) {
+  console.log('Transforming API tournaments data...');
+  
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  
+  // Create a map of tournament types to categories
+  const categoryMap = {
+    'Grand Slam': 'Grand Slam',
+    'ATP Masters 1000': 'Masters 1000',
+    'ATP 500': 'ATP 500',
+    'ATP 250': 'ATP 250',
+    'WTA 1000': 'WTA 1000',
+    'WTA 500': 'WTA 500',
+    'WTA 250': 'WTA 250'
+  };
+  
+  // Create a map of tournament names to surfaces
+  const surfaceMap = {
+    'Australian Open': 'Hard',
+    'Roland Garros': 'Clay',
+    'Wimbledon': 'Grass',
+    'US Open': 'Hard',
+    'Miami': 'Hard',
+    'Indian Wells': 'Hard',
+    'Madrid': 'Clay',
+    'Rome': 'Clay',
+    'Cincinnati': 'Hard',
+    'Canada': 'Hard',
+    'Monte Carlo': 'Clay',
+    'Shanghai': 'Hard',
+    'Paris': 'Hard',
+    'Acapulco': 'Hard',
+    'Dubai': 'Hard',
+    'Barcelona': 'Clay',
+    'Halle': 'Grass',
+    'Queens': 'Grass'
+  };
+  
+  // Transform the tournaments data
+  const transformedTournaments = apiTournaments.map(tournament => {
+    // Extract tournament name
+    const name = tournament.tournament_name || tournament.name || 'Unknown Tournament';
+    
+    // Determine category
+    let category = 'ATP Tour';
+    if (tournament.tournament_type) {
+      category = categoryMap[tournament.tournament_type] || tournament.tournament_type;
+    }
+    
+    // Determine surface
+    let surface = 'Hard';
+    for (const [tournamentName, surfaceType] of Object.entries(surfaceMap)) {
+      if (name.includes(tournamentName)) {
+        surface = surfaceType;
+        break;
+      }
+    }
+    
+    // Parse dates
+    let startDate = new Date();
+    let endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7); // Default 1 week duration
+    
+    if (tournament.start_date) {
+      startDate = new Date(tournament.start_date);
+    }
+    
+    if (tournament.end_date) {
+      endDate = new Date(tournament.end_date);
+    } else if (startDate) {
+      // If only start date is available, set end date to 7 days after start
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 7);
+    }
+    
+    // Determine status
+    let status = 'Upcoming';
+    const today = new Date();
+    
+    if (today > endDate) {
+      status = 'Completed';
+    } else if (today >= startDate && today <= endDate) {
+      status = 'Ongoing';
+    }
+    
+    // Generate prize money if not available
+    let prizeMoney = tournament.prize_money || '$1,000,000';
+    
+    // Create tournament object
+    return {
+      tournament_id: tournament.tournament_key || tournament.id || Math.floor(Math.random() * 1000),
+      name: name,
+      location: tournament.location || tournament.city || 'Unknown Location',
+      surface: surface,
+      category: category,
+      prize_money: prizeMoney,
+      start_date: startDate.toISOString().split('T')[0],
+      end_date: endDate.toISOString().split('T')[0],
+      status: status
+    };
+  });
+  
+  // Filter to keep only current and upcoming tournaments
+  return transformedTournaments
+    .filter(tournament => {
+      const tournamentYear = new Date(tournament.start_date).getFullYear();
+      return (tournament.status === 'Upcoming' || tournament.status === 'Ongoing') && tournamentYear >= currentYear;
+    })
+    .sort((a, b) => {
+      // Sort by start date (ascending)
+      return new Date(a.start_date) - new Date(b.start_date);
+    });
+}
+
+// Function to get base tournaments data
+function getBaseTournaments() {
+  const currentYear = new Date().getFullYear();
+  
+  return [
+    {
+      tournament_id: 1,
+      name: 'Australian Open',
+      location: 'Melbourne, Australia',
+      surface: 'Hard',
+      category: 'Grand Slam',
+      prize_money: '$75,000,000',
+      start_date: `${currentYear}-01-14`,
+      end_date: `${currentYear}-01-28`,
+      status: 'Completed'
+    },
+    {
+      tournament_id: 2,
+      name: 'Roland Garros',
+      location: 'Paris, France',
+      surface: 'Clay',
+      category: 'Grand Slam',
+      prize_money: '$53,000,000',
+      start_date: `${currentYear}-05-26`,
+      end_date: `${currentYear}-06-09`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 3,
+      name: 'Wimbledon',
+      location: 'London, United Kingdom',
+      surface: 'Grass',
+      category: 'Grand Slam',
+      prize_money: '$57,500,000',
+      start_date: `${currentYear}-07-01`,
+      end_date: `${currentYear}-07-14`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 4,
+      name: 'US Open',
+      location: 'New York, USA',
+      surface: 'Hard',
+      category: 'Grand Slam',
+      prize_money: '$65,000,000',
+      start_date: `${currentYear}-08-26`,
+      end_date: `${currentYear}-09-08`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 5,
+      name: 'Miami Open',
+      location: 'Miami, USA',
+      surface: 'Hard',
+      category: 'Masters 1000',
+      prize_money: '$8,800,000',
+      start_date: `${currentYear}-03-20`,
+      end_date: `${currentYear}-03-31`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 6,
+      name: 'Madrid Open',
+      location: 'Madrid, Spain',
+      surface: 'Clay',
+      category: 'Masters 1000',
+      prize_money: '$7,700,000',
+      start_date: `${currentYear}-04-24`,
+      end_date: `${currentYear}-05-05`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 7,
+      name: 'Rome Masters',
+      location: 'Rome, Italy',
+      surface: 'Clay',
+      category: 'Masters 1000',
+      prize_money: '$7,500,000',
+      start_date: `${currentYear}-05-08`,
+      end_date: `${currentYear}-05-19`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 8,
+      name: 'Cincinnati Masters',
+      location: 'Cincinnati, USA',
+      surface: 'Hard',
+      category: 'Masters 1000',
+      prize_money: '$6,600,000',
+      start_date: `${currentYear}-08-12`,
+      end_date: `${currentYear}-08-19`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 9,
+      name: 'Indian Wells Masters',
+      location: 'Indian Wells, USA',
+      surface: 'Hard',
+      category: 'Masters 1000',
+      prize_money: '$9,100,000',
+      start_date: `${currentYear}-03-06`,
+      end_date: `${currentYear}-03-17`,
+      status: 'Ongoing'
+    },
+    {
+      tournament_id: 10,
+      name: 'Canada Masters',
+      location: 'Montreal/Toronto, Canada',
+      surface: 'Hard',
+      category: 'Masters 1000',
+      prize_money: '$6,600,000',
+      start_date: `${currentYear}-08-05`,
+      end_date: `${currentYear}-08-12`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 11,
+      name: 'Monte Carlo Masters',
+      location: 'Monte Carlo, Monaco',
+      surface: 'Clay',
+      category: 'Masters 1000',
+      prize_money: '$5,950,000',
+      start_date: `${currentYear}-04-07`,
+      end_date: `${currentYear}-04-14`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 12,
+      name: 'Shanghai Masters',
+      location: 'Shanghai, China',
+      surface: 'Hard',
+      category: 'Masters 1000',
+      prize_money: '$8,800,000',
+      start_date: `${currentYear}-10-02`,
+      end_date: `${currentYear}-10-09`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 13,
+      name: 'Paris Masters',
+      location: 'Paris, France',
+      surface: 'Hard (Indoor)',
+      category: 'Masters 1000',
+      prize_money: '$5,800,000',
+      start_date: `${currentYear}-10-28`,
+      end_date: `${currentYear}-11-03`,
+      status: 'Upcoming'
+    },
+    {
+      tournament_id: 14,
+      name: 'Dubai Tennis Championships',
+      location: 'Dubai, UAE',
+      surface: 'Hard',
+      category: 'ATP 500',
+      prize_money: '$3,020,535',
+      start_date: `${currentYear}-02-26`,
+      end_date: `${currentYear}-03-02`,
+      status: 'Completed'
+    },
+    {
+      tournament_id: 15,
+      name: 'Barcelona Open',
+      location: 'Barcelona, Spain',
+      surface: 'Clay',
+      category: 'ATP 500',
+      prize_money: '$2,722,480',
+      start_date: `${currentYear}-04-15`,
+      end_date: `${currentYear}-04-21`,
+      status: 'Upcoming'
+    }
+  ];
 }
 
 // Base ATP rankings data
@@ -586,13 +989,24 @@ function getBaseWTARankings() {
   ];
 }
 
-/**
- * Transform rankings data from the API-Tennis API to match our expected format
- * @param {Array} apiRankings - The rankings data from the API-Tennis API
- * @param {string} type - The type of rankings (ATP or WTA)
- * @returns {Array} - The transformed rankings data
- */
-const transformApiTennisRankings = (apiRankings, type) => {
+// Helper function to create a mock tournament
+function createMockTournament(tournamentId) {
+  const currentYear = new Date().getFullYear();
+  return {
+    tournament_id: tournamentId,
+    name: `Tournament ${tournamentId}`,
+    location: 'Unknown Location',
+    surface: 'Hard',
+    category: 'ATP Tour',
+    prize_money: '$1,000,000',
+    start_date: `${currentYear}-06-01`,
+    end_date: `${currentYear}-06-07`,
+    status: 'Upcoming'
+  };
+}
+
+// Helper function to transform API Tennis rankings data
+function transformApiTennisRankings(apiRankings, type) {
   console.log('Transforming API rankings data...');
   
   // The API-Tennis API returns an array of player rankings
@@ -623,503 +1037,4 @@ const transformApiTennisRankings = (apiRankings, type) => {
       movement: movementValue
     };
   });
-};
-
-/**
- * Transform tournaments data from the API-Tennis API to match our expected format
- * @param {Array} apiTournaments - The tournaments data from the API-Tennis API
- * @returns {Array} - The transformed tournaments data focusing on upcoming tournaments
- */
-const transformApiTennisTournaments = (apiTournaments) => {
-  console.log('Transforming API tournaments data...');
-  console.log('Sample tournament data:', JSON.stringify(apiTournaments[0], null, 2));
-  
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  
-  // Create a map of tournament types to categories
-  const categoryMap = {
-    'Grand Slam': 'Grand Slam',
-    'ATP Masters 1000': 'Masters 1000',
-    'ATP 500': 'ATP 500',
-    'ATP 250': 'ATP 250',
-    'WTA 1000': 'WTA 1000',
-    'WTA 500': 'WTA 500',
-    'WTA 250': 'WTA 250'
-  };
-  
-  // Create a map of tournament names to surfaces
-  const surfaceMap = {
-    'Australian Open': 'Hard',
-    'Roland Garros': 'Clay',
-    'Wimbledon': 'Grass',
-    'US Open': 'Hard',
-    'Miami': 'Hard',
-    'Indian Wells': 'Hard',
-    'Madrid': 'Clay',
-    'Rome': 'Clay',
-    'Cincinnati': 'Hard',
-    'Canada': 'Hard',
-    'Monte Carlo': 'Clay',
-    'Shanghai': 'Hard',
-    'Paris': 'Hard (Indoor)',
-    'Acapulco': 'Hard',
-    'Dubai': 'Hard',
-    'Barcelona': 'Clay',
-    'Halle': 'Grass',
-    'Queens': 'Grass',
-    'Stuttgart': 'Grass'
-  };
-  
-  // Create a map of tournament names to locations
-  const locationMap = {
-    'Australian Open': 'Melbourne, Australia',
-    'Roland Garros': 'Paris, France',
-    'Wimbledon': 'London, UK',
-    'US Open': 'New York, USA',
-    'Miami': 'Miami, USA',
-    'Indian Wells': 'Indian Wells, USA',
-    'Madrid': 'Madrid, Spain',
-    'Rome': 'Rome, Italy',
-    'Cincinnati': 'Cincinnati, USA',
-    'Canada': 'Toronto/Montreal, Canada',
-    'Monte Carlo': 'Monte Carlo, Monaco',
-    'Shanghai': 'Shanghai, China',
-    'Paris': 'Paris, France',
-    'Acapulco': 'Acapulco, Mexico',
-    'Dubai': 'Dubai, UAE',
-    'Barcelona': 'Barcelona, Spain',
-    'Halle': 'Halle, Germany',
-    'Queens': 'London, UK',
-    'Stuttgart': 'Stuttgart, Germany'
-  };
-  
-  // Determine tournament status based on dates
-  const determineTournamentStatus = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (currentDate < start) {
-      return 'Upcoming';
-    } else if (currentDate >= start && currentDate <= end) {
-      return 'Ongoing';
-    } else {
-      return 'Completed';
-    }
-  };
-  
-  // Generate prize money based on category
-  const generatePrizeMoney = (category) => {
-    let basePrize = 1000000; // Default prize money
-    
-    if (category === 'Grand Slam') {
-      basePrize = 50000000 + Math.floor(Math.random() * 25000000);
-    } else if (category === 'Masters 1000' || category === 'WTA 1000') {
-      basePrize = 5000000 + Math.floor(Math.random() * 5000000);
-    } else if (category === 'ATP 500' || category === 'WTA 500') {
-      basePrize = 2000000 + Math.floor(Math.random() * 1000000);
-    } else if (category === 'ATP 250' || category === 'WTA 250') {
-      basePrize = 500000 + Math.floor(Math.random() * 500000);
-    }
-    
-    return `$${basePrize.toLocaleString()}`;
-  };
-  
-  // The API-Tennis API returns an array of tournaments
-  // We need to transform it to match our expected format and focus on upcoming tournaments for 2025 only
-  const transformedTournaments = apiTournaments
-    .map((tournament, index) => {
-      // Get tournament name
-      const tournamentName = tournament.tournament_name || `Tournament ${index + 1}`;
-      
-      // Determine tournament category based on event type
-      let category = 'Unknown';
-      const eventType = tournament.event_type_type || '';
-      
-      if (eventType.includes('Grand Slam')) {
-        category = 'Grand Slam';
-      } else if (eventType.includes('Atp') && eventType.includes('Masters')) {
-        category = 'Masters 1000';
-      } else if (eventType.includes('Atp') && eventType.includes('500')) {
-        category = 'ATP 500';
-      } else if (eventType.includes('Atp') && eventType.includes('250')) {
-        category = 'ATP 250';
-      } else if (eventType.includes('Wta') && eventType.includes('1000')) {
-        category = 'WTA 1000';
-      } else if (eventType.includes('Wta') && eventType.includes('500')) {
-        category = 'WTA 500';
-      } else if (eventType.includes('Wta') && eventType.includes('250')) {
-        category = 'WTA 250';
-      } else if (eventType.includes('Atp')) {
-        category = 'ATP Tour';
-      } else if (eventType.includes('Wta')) {
-        category = 'WTA Tour';
-      }
-      
-      // For Grand Slam tournaments, update the name to include the year
-      let name = tournamentName;
-      if (category === 'Grand Slam' && !name.includes(currentYear.toString())) {
-        name = `${name} ${currentYear}`;
-      }
-      
-      // Use real tournament data if available, otherwise use our predefined data
-      const realTournament = getBaseTournaments().find(t => 
-        t.name.toLowerCase().includes(tournamentName.toLowerCase()) || 
-        tournamentName.toLowerCase().includes(t.name.toLowerCase().replace(` ${currentYear}`, ''))
-      );
-      
-      let startDate, endDate, status, location, surface, prizeMoney;
-      
-      if (realTournament) {
-        // Use data from our predefined tournaments
-        startDate = realTournament.start_date;
-        endDate = realTournament.end_date;
-        status = realTournament.status;
-        location = realTournament.location;
-        surface = realTournament.surface;
-        prizeMoney = realTournament.prize_money;
-      } else {
-      // For tournaments not in our predefined list, use 2025 for dates
-      const now = new Date();
-      const futureDate = new Date(2025, now.getMonth(), now.getDate());
-      futureDate.setMonth(now.getMonth() + 2); // Set to 2 months in the future
-      
-      startDate = futureDate.toISOString().split('T')[0];
-      
-      const endDateObj = new Date(futureDate);
-      endDateObj.setDate(futureDate.getDate() + 7); // One week tournament
-      endDate = endDateObj.toISOString().split('T')[0];
-        
-        status = 'Upcoming';
-        
-        // Determine tournament surface based on name
-        surface = 'Unknown';
-        for (const [key, value] of Object.entries(surfaceMap)) {
-          if (name.toLowerCase().includes(key.toLowerCase())) {
-            surface = value;
-            break;
-          }
-        }
-        
-        // Determine tournament location based on name
-        location = 'Unknown';
-        for (const [key, value] of Object.entries(locationMap)) {
-          if (name.toLowerCase().includes(key.toLowerCase())) {
-            location = value;
-            break;
-          }
-        }
-        
-        // Generate prize money
-        prizeMoney = generatePrizeMoney(category);
-      }
-      
-      return {
-        tournament_id: tournament.tournament_key || index + 1,
-        name: name,
-        location: location,
-        surface: surface,
-        category: category,
-        prize_money: prizeMoney,
-        start_date: startDate,
-        end_date: endDate,
-        status: status
-      };
-    })
-    .filter(tournament => {
-      // Filter to keep only 2025 tournaments that are current or upcoming
-      const tournamentYear = new Date(tournament.start_date).getFullYear();
-      const isValid = (tournament.status === 'Upcoming' || tournament.status === 'Ongoing') && tournamentYear === 2025;
-      console.log(`Tournament ${tournament.name}, year: ${tournamentYear}, status: ${tournament.status}, isValid: ${isValid}`);
-      return isValid;
-    })
-    .sort((a, b) => {
-      // Sort by start date (ascending)
-      return new Date(a.start_date) - new Date(b.start_date);
-    })
-    .slice(0, 20); // Limit to 20 tournaments
-    
-  console.log(`Transformed ${transformedTournaments.length} tournaments`);
-  return transformedTournaments;
-};
-
-// Base tournaments data for 2025 only
-function getBaseTournaments() {
-  return [
-    {
-      tournament_id: 1,
-      name: 'Australian Open 2025',
-      location: 'Melbourne, Australia',
-      surface: 'Hard',
-      category: 'Grand Slam',
-      prize_money: '$75,000,000',
-      start_date: '2025-01-13',
-      end_date: '2025-01-26',
-      status: 'Completed'
-    },
-    {
-      tournament_id: 2,
-      name: 'Roland Garros 2025',
-      location: 'Paris, France',
-      surface: 'Clay',
-      category: 'Grand Slam',
-      prize_money: '$50,000,000',
-      start_date: '2025-05-25',
-      end_date: '2025-06-08',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 3,
-      name: 'Wimbledon 2025',
-      location: 'London, UK',
-      surface: 'Grass',
-      category: 'Grand Slam',
-      prize_money: '$60,000,000',
-      start_date: '2025-06-30',
-      end_date: '2025-07-13',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 4,
-      name: 'US Open 2025',
-      location: 'New York, USA',
-      surface: 'Hard',
-      category: 'Grand Slam',
-      prize_money: '$65,000,000',
-      start_date: '2025-08-25',
-      end_date: '2025-09-07',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 5,
-      name: 'Miami Open 2025',
-      location: 'Miami, USA',
-      surface: 'Hard',
-      category: 'Masters 1000',
-      prize_money: '$8,800,000',
-      start_date: '2025-03-17',
-      end_date: '2025-03-30',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 6,
-      name: 'Madrid Open 2025',
-      location: 'Madrid, Spain',
-      surface: 'Clay',
-      category: 'Masters 1000',
-      prize_money: '$7,500,000',
-      start_date: '2025-04-28',
-      end_date: '2025-05-11',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 7,
-      name: 'Italian Open 2025',
-      location: 'Rome, Italy',
-      surface: 'Clay',
-      category: 'Masters 1000',
-      prize_money: '$7,000,000',
-      start_date: '2025-05-12',
-      end_date: '2025-05-19',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 8,
-      name: 'Cincinnati Masters 2025',
-      location: 'Cincinnati, USA',
-      surface: 'Hard',
-      category: 'Masters 1000',
-      prize_money: '$6,600,000',
-      start_date: '2025-08-11',
-      end_date: '2025-08-18',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 9,
-      name: 'Indian Wells Masters 2025',
-      location: 'Indian Wells, USA',
-      surface: 'Hard',
-      category: 'Masters 1000',
-      prize_money: '$9,000,000',
-      start_date: '2025-03-06',
-      end_date: '2025-03-16',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 10,
-      name: 'ATP Finals 2025',
-      location: 'Turin, Italy',
-      surface: 'Hard (Indoor)',
-      category: 'Tour Finals',
-      prize_money: '$14,750,000',
-      start_date: '2025-11-09',
-      end_date: '2025-11-16',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 11,
-      name: 'Dubai Tennis Championships 2025',
-      location: 'Dubai, UAE',
-      surface: 'Hard',
-      category: 'ATP 500',
-      prize_money: '$3,000,000',
-      start_date: '2025-02-24',
-      end_date: '2025-03-01',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 12,
-      name: 'Barcelona Open 2025',
-      location: 'Barcelona, Spain',
-      surface: 'Clay',
-      category: 'ATP 500',
-      prize_money: '$2,800,000',
-      start_date: '2025-04-15',
-      end_date: '2025-04-21',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 13,
-      name: 'Queen\'s Club Championships 2025',
-      location: 'London, UK',
-      surface: 'Grass',
-      category: 'ATP 500',
-      prize_money: '$2,500,000',
-      start_date: '2025-06-16',
-      end_date: '2025-06-22',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 14,
-      name: 'Halle Open 2025',
-      location: 'Halle, Germany',
-      surface: 'Grass',
-      category: 'ATP 500',
-      prize_money: '$2,300,000',
-      start_date: '2025-06-16',
-      end_date: '2025-06-22',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 15,
-      name: 'Stuttgart Open 2025',
-      location: 'Stuttgart, Germany',
-      surface: 'Grass',
-      category: 'ATP 250',
-      prize_money: '$800,000',
-      start_date: '2025-06-09',
-      end_date: '2025-06-15',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 16,
-      name: 'Vienna Open 2025',
-      location: 'Vienna, Austria',
-      surface: 'Hard (Indoor)',
-      category: 'ATP 500',
-      prize_money: '$2,400,000',
-      start_date: '2025-10-20',
-      end_date: '2025-10-26',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 17,
-      name: 'Paris Masters 2025',
-      location: 'Paris, France',
-      surface: 'Hard (Indoor)',
-      category: 'Masters 1000',
-      prize_money: '$5,800,000',
-      start_date: '2025-10-27',
-      end_date: '2025-11-02',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 18,
-      name: 'Monte-Carlo Masters 2025',
-      location: 'Monte Carlo, Monaco',
-      surface: 'Clay',
-      category: 'Masters 1000',
-      prize_money: '$5,900,000',
-      start_date: '2025-04-06',
-      end_date: '2025-04-13',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 19,
-      name: 'Shanghai Masters 2025',
-      location: 'Shanghai, China',
-      surface: 'Hard',
-      category: 'Masters 1000',
-      prize_money: '$8,200,000',
-      start_date: '2025-10-05',
-      end_date: '2025-10-12',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 20,
-      name: 'Canadian Open 2025',
-      location: 'Toronto, Canada',
-      surface: 'Hard',
-      category: 'Masters 1000',
-      prize_money: '$6,700,000',
-      start_date: '2025-08-04',
-      end_date: '2025-08-10',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 21,
-      name: 'Geneva Open 2025',
-      location: 'Geneva, Switzerland',
-      surface: 'Clay',
-      category: 'ATP 250',
-      prize_money: '$750,000',
-      start_date: '2025-05-18',
-      end_date: '2025-05-24',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 22,
-      name: 'Lyon Open 2025',
-      location: 'Lyon, France',
-      surface: 'Clay',
-      category: 'ATP 250',
-      prize_money: '$720,000',
-      start_date: '2025-05-18',
-      end_date: '2025-05-24',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 23,
-      name: 'Eastbourne International 2025',
-      location: 'Eastbourne, UK',
-      surface: 'Grass',
-      category: 'ATP 250',
-      prize_money: '$760,000',
-      start_date: '2025-06-23',
-      end_date: '2025-06-29',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 24,
-      name: 'Mallorca Championships 2025',
-      location: 'Mallorca, Spain',
-      surface: 'Grass',
-      category: 'ATP 250',
-      prize_money: '$780,000',
-      start_date: '2025-06-23',
-      end_date: '2025-06-29',
-      status: 'Upcoming'
-    },
-    {
-      tournament_id: 25,
-      name: 'WTA Finals 2025',
-      location: 'Shenzhen, China',
-      surface: 'Hard (Indoor)',
-      category: 'WTA Finals',
-      prize_money: '$14,000,000',
-      start_date: '2025-11-02',
-      end_date: '2025-11-09',
-      status: 'Upcoming'
-    }
-  ];
 }

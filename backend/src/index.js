@@ -3,7 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/authMiddleware.js';
-import { getRankingsFromMCP, getTournamentsFromMCP, getTournamentDetails } from './services/tennisApiService.js';
+import { getRankings, getTournaments, getTournamentDetails } from './services/tennisApiService.js';
 import startMcpProxy from './services/mcpProxy.js';
 
 // Load environment variables
@@ -294,7 +294,7 @@ app.get('/api/tennis/rankings/:type', async (req, res) => {
   
   try {
     // Get rankings from our service
-    const result = await getRankingsFromMCP(type);
+    const result = await getRankings(type);
     res.json(result);
   } catch (error) {
     console.error('Error in rankings endpoint:', error);
@@ -330,7 +330,7 @@ app.get('/api/tennis/players/:id', (req, res) => {
 app.get('/api/tennis/tournaments', async (req, res) => {
   try {
     // Get tournaments from our service
-    const result = await getTournamentsFromMCP();
+    const result = await getTournaments();
     res.json(result);
   } catch (error) {
     console.error('Error in tournaments endpoint:', error);
