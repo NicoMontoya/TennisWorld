@@ -249,16 +249,6 @@ function generateDetailedIndianWellsFixtures(tournamentId) {
   // Combine top players and additional players
   const allPlayers = [...topPlayers, ...additionalPlayers];
   
-  // Rounds in the tournament
-  const rounds = [
-    'Round of 64',
-    'Round of 32',
-    'Round of 16',
-    'Quarter-final',
-    'Semi-final',
-    'Final'
-  ];
-  
   // Get the tournament from our base data
   const tournament = getBaseTournaments().find(t => t.tournament_id.toString() === tournamentId.toString());
   
@@ -266,43 +256,173 @@ function generateDetailedIndianWellsFixtures(tournamentId) {
     return [];
   }
   
-  // Generate fixtures for each round
+  // Generate a structured draw with proper progression
   const fixtures = [];
   
-  // For simplicity, just generate some sample fixtures
-  for (let i = 0; i < 20; i++) {
-    const player1 = allPlayers[Math.floor(Math.random() * allPlayers.length)];
-    const player2 = allPlayers[Math.floor(Math.random() * allPlayers.length)];
-    
-    if (player1.player_key === player2.player_key) continue;
-    
-    const round = rounds[Math.floor(Math.random() * rounds.length)];
-    const isCompleted = Math.random() > 0.5;
-    
-    fixtures.push({
-      event_key: `${tournamentId}${i}`,
-      event_date: tournament.start_date,
-      event_time: '12:00',
-      event_first_player: player1.seed ? `${player1.player_name} [${player1.seed}]` : player1.player_name,
-      first_player_key: player1.player_key,
-      event_second_player: player2.seed ? `${player2.player_name} [${player2.seed}]` : player2.player_name,
-      second_player_key: player2.player_key,
-      event_final_result: isCompleted ? (Math.random() > 0.5 ? '2 - 0' : '0 - 2') : '-',
-      event_game_result: '-',
-      event_serve: null,
-      event_winner: isCompleted ? (Math.random() > 0.5 ? 'First Player' : 'Second Player') : null,
-      event_status: isCompleted ? 'Finished' : 'Not Started',
-      event_type_type: tournament.category,
-      tournament_name: tournament.name,
-      tournament_key: tournamentId,
-      tournament_round: round,
-      tournament_season: '2025',
-      event_live: '0',
-      event_qualification: 'False',
-      player1_country: player1.country,
-      player2_country: player2.country
-    });
+  // Define the number of players in each round
+  const roundSizes = {
+    'Round of 64': 64,
+    'Round of 32': 32,
+    'Round of 16': 16,
+    'Quarter-final': 8,
+    'Semi-final': 4,
+    'Final': 2
+  };
+  
+  // Create a map to track winners for progression
+  const winnerMap = {};
+  
+  // Create a structured bracket with proper seeding
+  // First, create an array of all players with proper seeding
+  const bracketPlayers = [];
+  
+  // Add top seeded players first
+  topPlayers.forEach((player, index) => {
+    // Place seeds according to standard tournament seeding positions
+    const seedPosition = getSeedPosition(index + 1, 64);
+    bracketPlayers[seedPosition] = player;
+  });
+  
+  // Fill remaining positions with additional players
+  let additionalPlayerIndex = 0;
+  for (let i = 0; i < 64; i++) {
+    if (!bracketPlayers[i]) {
+      bracketPlayers[i] = additionalPlayers[additionalPlayerIndex++];
+    }
   }
+  
+  // Generate fixtures for each round
+  Object.entries(roundSizes).forEach(([round, size], roundIndex) => {
+    // For the first round, create matchups based on the bracket
+    if (round === 'Round of 64') {
+      for (let i = 0; i < size / 2; i++) {
+        const player1 = bracketPlayers[i * 2];
+        const player2 = bracketPlayers[i * 2 + 1];
+        
+        // Determine if match is completed
+        const isCompleted = true; // All first round matches are completed
+        
+        // Favor seeded players, but allow for upsets
+        const player1Seed = player1.seed || 999;
+        const player2Seed = player2.seed || 999;
+        const seedDiff = player2Seed - player1Seed;
+        
+        // Higher probability of winning for better seeded players
+        const player1WinProb = seedDiff > 0 ? 0.7 + (seedDiff / 100) : 0.3 - (Math.abs(seedDiff) / 100);
+        const player1Winner = Math.random() < player1WinProb;
+        
+        // Create a unique match ID
+        const matchId = `R1-M${i + 1}`;
+        
+        // Store the winner for the next round
+        winnerMap[matchId] = player1Winner ? player1 : player2;
+        
+        fixtures.push({
+          event_key: `${tournamentId}-${matchId}`,
+          event_date: tournament.start_date,
+          event_time: '12:00',
+          event_first_player: player1.seed ? `${player1.player_name} [${player1.seed}]` : player1.player_name,
+          first_player_key: player1.player_key,
+          event_second_player: player2.seed ? `${player2.player_name} [${player2.seed}]` : player2.player_name,
+          second_player_key: player2.player_key,
+          event_final_result: isCompleted ? (player1Winner ? '2 - 0' : '0 - 2') : '-',
+          event_game_result: '-',
+          event_serve: null,
+          event_winner: isCompleted ? (player1Winner ? 'First Player' : 'Second Player') : null,
+          event_status: 'Finished',
+          event_type_type: tournament.category,
+          tournament_name: tournament.name,
+          tournament_key: tournamentId,
+          tournament_round: round,
+          tournament_season: '2025',
+          event_live: '0',
+          event_qualification: 'False',
+          player1_country: player1.country,
+          player2_country: player2.country,
+          scores: [
+            { score_first: player1Winner ? '6' : '3', score_second: player1Winner ? '3' : '6', score_set: '1' },
+            { score_first: player1Winner ? '6' : '4', score_second: player1Winner ? '4' : '6', score_set: '2' }
+          ]
+        });
+      }
+    } else {
+      // For subsequent rounds, use winners from previous round in proper bracket order
+      const prevRound = Object.keys(roundSizes)[roundIndex - 1];
+      const prevRoundMatches = fixtures.filter(f => f.tournament_round === prevRound);
+      
+      // Sort previous round matches to ensure proper bracket progression
+      prevRoundMatches.sort((a, b) => {
+        const aMatch = parseInt(a.event_key.split('-M')[1]);
+        const bMatch = parseInt(b.event_key.split('-M')[1]);
+        return aMatch - bMatch;
+      });
+      
+      for (let i = 0; i < size / 2; i++) {
+        // Get the winners from the previous round
+        const prevMatchId1 = prevRoundMatches[i * 2].event_key.split(`${tournamentId}-`)[1];
+        const prevMatchId2 = prevRoundMatches[i * 2 + 1].event_key.split(`${tournamentId}-`)[1];
+        
+        const player1 = winnerMap[prevMatchId1];
+        const player2 = winnerMap[prevMatchId2];
+        
+        // Skip if we don't have both players (shouldn't happen in a proper bracket)
+        if (!player1 || !player2) continue;
+        
+        // Determine if match is completed based on the round
+        const isCompleted = round !== 'Final' && round !== 'Semi-final';
+        const isLive = !isCompleted && ((round === 'Semi-final' && i === 0) || (round === 'Final'));
+        
+        // Favor seeded players, but allow for upsets
+        const player1Seed = player1.seed || 999;
+        const player2Seed = player2.seed || 999;
+        const seedDiff = player2Seed - player1Seed;
+        
+        // Higher probability of winning for better seeded players, but closer in later rounds
+        const roundFactor = 1 - (roundIndex * 0.1); // Reduces seed advantage in later rounds
+        const player1WinProb = seedDiff > 0 ? 
+          0.5 + (seedDiff / 100) * roundFactor : 
+          0.5 - (Math.abs(seedDiff) / 100) * roundFactor;
+        
+        const player1Winner = Math.random() < player1WinProb;
+        
+        // Create a unique match ID for this round
+        const matchId = `R${roundIndex + 1}-M${i + 1}`;
+        
+        // Store the winner for the next round
+        if (isCompleted || isLive) {
+          winnerMap[matchId] = player1Winner ? player1 : player2;
+        }
+        
+        fixtures.push({
+          event_key: `${tournamentId}-${matchId}`,
+          event_date: tournament.start_date,
+          event_time: '12:00',
+          event_first_player: player1.seed ? `${player1.player_name} [${player1.seed}]` : player1.player_name,
+          first_player_key: player1.player_key,
+          event_second_player: player2.seed ? `${player2.player_name} [${player2.seed}]` : player2.player_name,
+          second_player_key: player2.player_key,
+          event_final_result: isCompleted ? (player1Winner ? '2 - 0' : '0 - 2') : '-',
+          event_game_result: isLive ? '30 - 15' : '-',
+          event_serve: isLive ? 'First Player' : null,
+          event_winner: isCompleted ? (player1Winner ? 'First Player' : 'Second Player') : null,
+          event_status: isCompleted ? 'Finished' : (isLive ? 'Set 2' : 'Not Started'),
+          event_type_type: tournament.category,
+          tournament_name: tournament.name,
+          tournament_key: tournamentId,
+          tournament_round: round,
+          tournament_season: '2025',
+          event_live: isLive ? '1' : '0',
+          event_qualification: 'False',
+          player1_country: player1.country,
+          player2_country: player2.country,
+          scores: isCompleted || isLive ? [
+            { score_first: player1Winner ? '6' : '3', score_second: player1Winner ? '3' : '6', score_set: '1' },
+            { score_first: isLive ? '3' : (player1Winner ? '6' : '4'), score_second: isLive ? '5' : (player1Winner ? '4' : '6'), score_set: '2' }
+          ] : []
+        });
+      }
+    }
+  });
   
   return fixtures;
 }

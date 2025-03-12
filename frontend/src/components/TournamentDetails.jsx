@@ -91,10 +91,10 @@ const TournamentDetails = () => {
 
   // Render match card
   const renderMatchCard = (match) => {
-    const isCompleted = match.event_status === 'Finished'
-    const isLive = match.event_live === '1'
-    const player1Winner = match.event_winner === 'First Player'
-    const player2Winner = match.event_winner === 'Second Player'
+    const isCompleted = match.event_status === 'Finished';
+    const isLive = match.event_live === '1';
+    const player1Winner = match.event_winner === 'First Player';
+    const player2Winner = match.event_winner === 'Second Player';
     
     return (
       <div 
@@ -171,6 +171,430 @@ const TournamentDetails = () => {
       </div>
     )
   }
+
+  // Render bracket match
+  const renderBracketMatch = (match, roundIndex, matchIndex) => {
+    const isCompleted = match.event_status === 'Finished';
+    const isLive = match.event_live === '1';
+    const player1Winner = match.event_winner === 'First Player';
+    const player2Winner = match.event_winner === 'Second Player';
+    
+    return (
+      <div 
+        key={`${match.event_key}-${roundIndex}-${matchIndex}`} 
+        className="bracket-match"
+        style={{
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          padding: '10px',
+          margin: '5px 0',
+          backgroundColor: isLive ? '#f8f9fa' : 'white',
+          boxShadow: isLive ? '0 0 10px rgba(0,128,0,0.2)' : 'none',
+          width: '220px',
+          position: 'relative'
+        }}
+      >
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          height: '100%',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ 
+            padding: '5px',
+            borderBottom: '1px solid #eee',
+            display: 'flex',
+            justifyContent: 'space-between',
+            backgroundColor: player1Winner ? 'rgba(0, 123, 255, 0.1)' : 'transparent',
+            borderRadius: '4px 4px 0 0'
+          }}>
+            <div style={{ 
+              fontWeight: 'bold',
+              color: player1Winner ? 'var(--primary-color)' : 'inherit',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '150px'
+            }}>
+              {player1Winner && <span style={{ marginRight: '5px' }}>✓</span>}
+              {match.event_first_player}
+            </div>
+            <div style={{ marginLeft: '5px' }}>
+              {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_first : '-') : ''}
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '5px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            backgroundColor: player2Winner ? 'rgba(0, 123, 255, 0.1)' : 'transparent',
+            borderRadius: '0 0 4px 4px'
+          }}>
+            <div style={{ 
+              fontWeight: 'bold',
+              color: player2Winner ? 'var(--primary-color)' : 'inherit',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '150px'
+            }}>
+              {player2Winner && <span style={{ marginRight: '5px' }}>✓</span>}
+              {match.event_second_player}
+            </div>
+            <div style={{ marginLeft: '5px' }}>
+              {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_second : '-') : ''}
+            </div>
+          </div>
+        </div>
+        
+        {isLive && (
+          <div style={{ 
+            position: 'absolute',
+            top: '-10px',
+            right: '-10px',
+            backgroundColor: '#28a745', 
+            color: 'white', 
+            padding: '3px 8px', 
+            borderRadius: '50%',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            LIVE
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // CSS styles for the bracket
+  const bracketStyles = {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '20px',
+      overflowX: 'auto'
+    },
+    roundLabels: {
+      display: 'flex',
+      justifyContent: 'space-around',
+      marginBottom: '20px'
+    },
+    roundLabel: {
+      color: 'var(--primary-color)',
+      fontWeight: 'bold',
+      padding: '5px 10px',
+      borderBottom: '2px solid var(--primary-color)',
+      textAlign: 'center',
+      minWidth: '120px'
+    },
+    wrapper: {
+      display: 'flex',
+      justifyContent: 'center',
+      padding: '20px',
+      overflowX: 'auto',
+      minHeight: '600px'
+    },
+    bracketColumn: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      margin: '0 25px'
+    },
+    item: {
+      display: 'flex',
+      flexDirection: 'row-reverse'
+    },
+    itemParent: {
+      position: 'relative',
+      marginLeft: '50px',
+      display: 'flex',
+      alignItems: 'center'
+    },
+    itemParentAfter: {
+      position: 'absolute',
+      content: '',
+      width: '25px',
+      height: '2px',
+      left: '0',
+      top: '50%',
+      backgroundColor: 'var(--primary-color)',
+      transform: 'translateX(-100%)'
+    },
+    itemChildrens: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    },
+    itemChild: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'flex-end',
+      marginTop: '10px',
+      marginBottom: '10px',
+      position: 'relative'
+    },
+    itemChildBefore: {
+      content: '',
+      position: 'absolute',
+      backgroundColor: 'var(--primary-color)',
+      right: '0',
+      top: '50%',
+      transform: 'translateX(100%)',
+      width: '25px',
+      height: '2px'
+    },
+    itemChildAfter: {
+      content: '',
+      position: 'absolute',
+      backgroundColor: 'var(--primary-color)',
+      right: '-25px',
+      height: 'calc(50% + 22px)',
+      width: '2px',
+      top: '50%'
+    },
+    itemChildLast: {
+      transform: 'translateY(-100%)'
+    },
+    matchBox: {
+      padding: '10px',
+      margin: '0',
+      backgroundColor: 'white',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      minWidth: '180px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    },
+    liveMatch: {
+      borderLeft: '4px solid #28a745'
+    },
+    playerName: {
+      margin: '5px 0',
+      fontSize: '14px',
+      fontWeight: 'normal',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    winner: {
+      fontWeight: 'bold',
+      color: 'var(--primary-color)'
+    },
+    score: {
+      fontSize: '12px',
+      color: '#666'
+    },
+    roundTitle: {
+      textAlign: 'center',
+      color: 'var(--primary-color)',
+      marginBottom: '15px'
+    }
+  };
+
+  // Render a match box with player names and scores
+  const renderMatchBox = (match) => {
+    const isLive = match.event_live === '1';
+    const isCompleted = match.event_status === 'Finished';
+    const player1Winner = match.event_winner === 'First Player';
+    const player2Winner = match.event_winner === 'Second Player';
+    
+    return (
+      <div style={{
+        ...bracketStyles.matchBox,
+        ...(isLive ? bracketStyles.liveMatch : {})
+      }}>
+        <div style={{
+          ...bracketStyles.playerName,
+          ...(player1Winner ? bracketStyles.winner : {})
+        }}>
+          <span>{player1Winner && "✓ "}{match.event_first_player}</span>
+          <span style={bracketStyles.score}>
+            {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_first : '-') : ''}
+          </span>
+        </div>
+        <div style={{
+          ...bracketStyles.playerName,
+          ...(player2Winner ? bracketStyles.winner : {})
+        }}>
+          <span>{player2Winner && "✓ "}{match.event_second_player}</span>
+          <span style={bracketStyles.score}>
+            {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_second : '-') : ''}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Recursive function to build the bracket structure
+  const renderBracketItem = (match, round, roundIndex, matchIndex, rounds, fixturesByRound) => {
+    // If this is the final round, just render the match
+    if (roundIndex === rounds.length - 1) {
+      return (
+        <div style={bracketStyles.item}>
+          <div style={bracketStyles.itemParent}>
+            {renderMatchBox(match)}
+            <div style={bracketStyles.itemParentAfter}></div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Find the child matches that feed into this match
+    const nextRoundIndex = roundIndex + 1;
+    const nextRound = rounds[nextRoundIndex];
+    const childMatches = fixturesByRound[nextRound];
+    
+    // Calculate which matches feed into this one
+    const childStartIndex = matchIndex * 2;
+    const childEndIndex = childStartIndex + 2;
+    const matchChildren = childMatches.slice(childStartIndex, childEndIndex);
+    
+    return (
+      <div style={bracketStyles.item}>
+        <div style={bracketStyles.itemParent}>
+          {renderMatchBox(match)}
+          <div style={bracketStyles.itemParentAfter}></div>
+        </div>
+        <div style={bracketStyles.itemChildrens}>
+          {matchChildren.map((childMatch, i) => (
+            <div 
+              key={`child-${nextRoundIndex}-${childStartIndex + i}`}
+              style={bracketStyles.itemChild}
+            >
+              <div style={bracketStyles.itemChildBefore}></div>
+              <div style={{
+                ...bracketStyles.itemChildAfter,
+                ...(i === matchChildren.length - 1 ? bracketStyles.itemChildLast : {})
+              }}></div>
+              {renderBracketItem(childMatch, nextRound, nextRoundIndex, childStartIndex + i, rounds, fixturesByRound)}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render bracket view
+  const renderBracketView = () => {
+    if (!filteredFixtures || filteredFixtures.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '30px' }}>
+          <p>No matches available for this view.</p>
+        </div>
+      );
+    }
+
+    // Define round order for sorting
+    const roundOrder = {
+      'Final': 0,
+      'Semi-final': 1,
+      'Quarter-final': 2,
+      'Round of 16': 3,
+      'Round of 32': 4,
+      'Round of 64': 5,
+      'Round of 128': 6
+    };
+
+    // Group fixtures by round
+    const fixturesByRound = {};
+    filteredFixtures.forEach(fixture => {
+      const round = fixture.tournament_round || 'Unknown Round';
+      if (!fixturesByRound[round]) {
+        fixturesByRound[round] = [];
+      }
+      fixturesByRound[round].push(fixture);
+    });
+
+    // Sort rounds in reverse order (final first, then semi-finals, etc.)
+    const sortedRounds = Object.keys(fixturesByRound).sort((a, b) => {
+      const orderA = roundOrder[a] !== undefined ? roundOrder[a] : -1;
+      const orderB = roundOrder[b] !== undefined ? roundOrder[b] : -1;
+      return orderA - orderB;
+    });
+    
+    // Ensure we have all the necessary rounds for a complete bracket
+    // This helps make the bracket stable even with missing data
+    const ensureCompleteRounds = () => {
+      // Check if we have the final round
+      if (!sortedRounds.includes('Final')) {
+        return false;
+      }
+      
+      // Get the final match
+      const finalMatch = fixturesByRound['Final'][0];
+      if (!finalMatch) {
+        return false;
+      }
+      
+      // For each round, ensure we have the expected number of matches
+      let expectedMatches = 1; // Start with 1 for the final
+      
+      for (let i = 1; i < sortedRounds.length; i++) {
+        const round = sortedRounds[i];
+        expectedMatches *= 2;
+        
+        // If we don't have enough matches in this round, pad with empty matches
+        if (fixturesByRound[round].length < expectedMatches) {
+          const emptyMatchesNeeded = expectedMatches - fixturesByRound[round].length;
+          
+          for (let j = 0; j < emptyMatchesNeeded; j++) {
+            fixturesByRound[round].push({
+              event_key: `empty-${round}-${j}`,
+              tournament_round: round,
+              event_first_player: 'TBD',
+              event_second_player: 'TBD',
+              event_status: 'Scheduled',
+              event_live: '0',
+              event_winner: '',
+              scores: []
+            });
+          }
+        }
+      }
+      
+      return true;
+    };
+    
+    // Try to ensure we have a complete bracket
+    const isBracketComplete = ensureCompleteRounds();
+    
+    // If we couldn't create a complete bracket, show a message
+    if (!isBracketComplete) {
+      return (
+        <div style={{ textAlign: 'center', padding: '30px' }}>
+          <p>Tournament bracket is not available or incomplete.</p>
+        </div>
+      );
+    }
+    
+    // Get the final match
+    const finalRound = sortedRounds[0];
+    const finalMatch = fixturesByRound[finalRound][0];
+    
+    return (
+      <div style={bracketStyles.container}>
+        {/* Round labels */}
+        <div style={bracketStyles.roundLabels}>
+          {/* Display rounds in reverse order: earliest rounds first, Final last */}
+          {[...sortedRounds].reverse().map((round, index) => (
+            <div key={`label-${round}`} style={bracketStyles.roundLabel}>
+              {round}
+            </div>
+          ))}
+        </div>
+        
+        {/* Bracket structure */}
+        <div style={bracketStyles.wrapper}>
+          {renderBracketItem(finalMatch, finalRound, 0, 0, sortedRounds, fixturesByRound)}
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -330,25 +754,31 @@ const TournamentDetails = () => {
       
       {/* Tab content */}
       <div>
-        {filteredFixtures.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '30px' }}>
-            <p>No matches available for this view.</p>
-          </div>
+        {activeTab === 'draw' ? (
+          // Bracket view for tournament draw
+          renderBracketView()
         ) : (
-          sortedRounds.map(round => (
-            <div key={round} style={{ marginBottom: '30px' }}>
-              <h3 style={{ 
-                color: 'var(--primary-color)', 
-                borderBottom: '1px solid var(--secondary-color)',
-                paddingBottom: '10px',
-                marginBottom: '15px'
-              }}>
-                {round}
-              </h3>
-              
-              {fixturesByRound[round].map(match => renderMatchCard(match))}
+          // List view for live and completed matches
+          filteredFixtures.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '30px' }}>
+              <p>No matches available for this view.</p>
             </div>
-          ))
+          ) : (
+            sortedRounds.map(round => (
+              <div key={round} style={{ marginBottom: '30px' }}>
+                <h3 style={{ 
+                  color: 'var(--primary-color)', 
+                  borderBottom: '1px solid var(--secondary-color)',
+                  paddingBottom: '10px',
+                  marginBottom: '15px'
+                }}>
+                  {round}
+                </h3>
+                
+                {fixturesByRound[round].map(match => renderMatchCard(match))}
+              </div>
+            ))
+          )
         )}
       </div>
     </div>
