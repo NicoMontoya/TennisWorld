@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const Tournaments = () => {
+  const navigate = useNavigate()
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -150,7 +152,19 @@ const Tournaments = () => {
                         border: '1px solid #ddd',
                         borderRadius: '8px',
                         padding: '15px',
-                        backgroundColor: tournament.status === 'Completed' ? '#f9f9f9' : 'white'
+                        backgroundColor: tournament.status === 'Completed' ? '#f9f9f9' : 'white',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        position: 'relative'
+                      }}
+                      onClick={() => navigate(`/tournament/${tournament.tournament_id}`)}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-5px)';
+                        e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
                       <h3 style={{ color: 'var(--primary-color)', marginBottom: '10px' }}>
@@ -160,7 +174,7 @@ const Tournaments = () => {
                       <p><strong>Surface:</strong> {tournament.surface}</p>
                       <p><strong>Dates:</strong> {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}</p>
                       <p><strong>Prize Money:</strong> {tournament.prize_money}</p>
-                      <p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                         <span 
                           style={{
                             display: 'inline-block',
@@ -168,13 +182,24 @@ const Tournaments = () => {
                             borderRadius: '4px',
                             backgroundColor: tournament.status === 'Completed' ? '#d3d3d3' : 'var(--secondary-color)',
                             color: 'var(--text-color)',
-                            fontWeight: 'bold',
-                            marginTop: '10px'
+                            fontWeight: 'bold'
                           }}
                         >
                           {tournament.status}
                         </span>
-                      </p>
+                        <span 
+                          style={{
+                            display: 'inline-block',
+                            padding: '5px 10px',
+                            borderRadius: '4px',
+                            backgroundColor: 'var(--primary-color)',
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          View Draw
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

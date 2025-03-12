@@ -4,6 +4,7 @@ import Register from './components/Register'
 import Welcome from './components/Welcome'
 import Rankings from './components/Rankings'
 import Tournaments from './components/Tournaments'
+import TournamentDetails from './components/TournamentDetails'
 import Navigation from './components/Navigation'
 
 function App() {
@@ -27,7 +28,11 @@ function App() {
         />
         <Route 
           path="/tournaments" 
-          element={user ? <Tournaments /> : <Navigate to="/" />} 
+          element={<Tournaments />} 
+        />
+        <Route 
+          path="/tournament/:id" 
+          element={<TournamentDetails />} 
         />
       </Routes>
     </div>

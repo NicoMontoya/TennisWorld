@@ -3,7 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/authMiddleware.js';
-import { getRankingsFromMCP, getTournamentsFromMCP } from './services/tennisApiService.js';
+import { getRankingsFromMCP, getTournamentsFromMCP, getTournamentDetails } from './services/tennisApiService.js';
 import startMcpProxy from './services/mcpProxy.js';
 
 // Load environment variables
@@ -337,6 +337,36 @@ app.get('/api/tennis/tournaments', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournaments'
+    });
+  }
+});
+
+app.get('/api/tennis/tournaments/:id/details', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`Tournament details endpoint called with id: ${id}`);
+    
+    // Get tournament details from the API
+    const response = await getTournamentDetails(id);
+    
+    if (response.status === 'error') {
+      console.log(`Error response from getTournamentDetails: ${response.message}`);
+      return res.status(500).json({
+        status: 'error',
+        message: response.message || 'Error fetching tournament details'
+      });
+    }
+    
+    console.log(`Successfully fetched tournament details for id: ${id}`);
+    res.json({
+      status: 'success',
+      data: response.data
+    });
+  } catch (error) {
+    console.error('Error fetching tournament details:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching tournament details'
     });
   }
 });

@@ -1,5 +1,6 @@
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
+import { getTournamentDetails } from '../services/tennisApiService.js';
 
 // @desc    Get player rankings by type (ATP or WTA)
 // @route   GET /api/tennis/rankings/:type
@@ -175,6 +176,39 @@ export const getTournamentsByCategory = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournaments'
+    });
+  }
+};
+
+// @desc    Get tournament details including fixtures and live scores
+// @route   GET /api/tennis/tournaments/:id/details
+// @access  Public
+export const getTournamentDetailsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`getTournamentDetailsById called with id: ${id}`);
+    
+    // Get tournament details from the API
+    const response = await getTournamentDetails(id);
+    
+    if (response.status === 'error') {
+      console.log(`Error response from getTournamentDetails: ${response.message}`);
+      return res.status(500).json({
+        status: 'error',
+        message: response.message || 'Error fetching tournament details'
+      });
+    }
+    
+    console.log(`Successfully fetched tournament details for id: ${id}`);
+    res.json({
+      status: 'success',
+      data: response.data
+    });
+  } catch (error) {
+    console.error('Error fetching tournament details:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching tournament details'
     });
   }
 };
