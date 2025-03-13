@@ -120,6 +120,30 @@ const TournamentDetails = () => {
     const player1Winner = match.event_winner === 'First Player';
     const player2Winner = match.event_winner === 'Second Player';
     
+    // Extract player names and seeds
+    let player1Name = match.event_first_player;
+    let player1Seed = match.first_player_seed;
+    let player2Name = match.event_second_player;
+    let player2Seed = match.second_player_seed;
+    
+    // If seed information is not available in the match object,
+    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
+    if (player1Seed === undefined) {
+      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player1Name = seedMatch[1].trim();
+        player1Seed = parseInt(seedMatch[2]);
+      }
+    }
+    
+    if (player2Seed === undefined) {
+      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player2Name = seedMatch[1].trim();
+        player2Seed = parseInt(seedMatch[2]);
+      }
+    }
+    
     return (
       <div 
         key={match.event_key} 
@@ -157,7 +181,10 @@ const TournamentDetails = () => {
             alignItems: 'center'
           }}>
             {player1Winner && <span style={{ marginRight: '5px' }}>✓</span>}
-            {match.event_first_player}
+            <span>{player1Name}</span>
+            {player1Seed && (
+              <span style={bracketStyles.seed}>[{player1Seed}]</span>
+            )}
           </div>
           <div style={{ width: '80px', textAlign: 'center' }}>
             {isCompleted || isLive ? renderScore(match.scores) : 'vs'}
@@ -170,7 +197,10 @@ const TournamentDetails = () => {
             alignItems: 'center',
             justifyContent: 'flex-end'
           }}>
-            {match.event_second_player}
+            <span>{player2Name}</span>
+            {player2Seed && (
+              <span style={bracketStyles.seed}>[{player2Seed}]</span>
+            )}
             {player2Winner && <span style={{ marginLeft: '5px' }}>✓</span>}
           </div>
         </div>
@@ -185,7 +215,7 @@ const TournamentDetails = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>Current Set: {match.event_status}</div>
-              <div>Serve: {match.event_serve === 'First Player' ? match.event_first_player : match.event_second_player}</div>
+              <div>Serve: {match.event_serve === 'First Player' ? player1Name : player2Name}</div>
             </div>
             <div style={{ marginTop: '5px' }}>
               Game Score: {match.event_game_result}
@@ -202,6 +232,30 @@ const TournamentDetails = () => {
     const isLive = match.event_live === '1';
     const player1Winner = match.event_winner === 'First Player';
     const player2Winner = match.event_winner === 'Second Player';
+    
+    // Extract player names and seeds
+    let player1Name = match.event_first_player;
+    let player1Seed = match.first_player_seed;
+    let player2Name = match.event_second_player;
+    let player2Seed = match.second_player_seed;
+    
+    // If seed information is not available in the match object,
+    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
+    if (player1Seed === undefined) {
+      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player1Name = seedMatch[1].trim();
+        player1Seed = parseInt(seedMatch[2]);
+      }
+    }
+    
+    if (player2Seed === undefined) {
+      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player2Name = seedMatch[1].trim();
+        player2Seed = parseInt(seedMatch[2]);
+      }
+    }
     
     return (
       <div 
@@ -238,10 +292,15 @@ const TournamentDetails = () => {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '150px'
+              maxWidth: '150px',
+              display: 'flex',
+              alignItems: 'center'
             }}>
               {player1Winner && <span style={{ marginRight: '5px' }}>✓</span>}
-              {match.event_first_player}
+              <span>{player1Name}</span>
+              {player1Seed && (
+                <span style={bracketStyles.seed}>[{player1Seed}]</span>
+              )}
             </div>
             <div style={{ marginLeft: '5px' }}>
               {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_first : '-') : ''}
@@ -261,10 +320,15 @@ const TournamentDetails = () => {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '150px'
+              maxWidth: '150px',
+              display: 'flex',
+              alignItems: 'center'
             }}>
               {player2Winner && <span style={{ marginRight: '5px' }}>✓</span>}
-              {match.event_second_player}
+              <span>{player2Name}</span>
+              {player2Seed && (
+                <span style={bracketStyles.seed}>[{player2Seed}]</span>
+              )}
             </div>
             <div style={{ marginLeft: '5px' }}>
               {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_second : '-') : ''}
@@ -413,6 +477,12 @@ const TournamentDetails = () => {
       fontSize: '12px',
       color: '#666'
     },
+    seed: {
+      fontSize: '12px',
+      color: '#666',
+      marginLeft: '5px',
+      fontWeight: 'normal'
+    },
     roundTitle: {
       textAlign: 'center',
       color: 'var(--primary-color)',
@@ -420,12 +490,36 @@ const TournamentDetails = () => {
     }
   };
 
-  // Render a match box with player names and scores
+  // Render a match box with player names, seeds, and scores
   const renderMatchBox = (match) => {
     const isLive = match.event_live === '1';
     const isCompleted = match.event_status === 'Finished';
     const player1Winner = match.event_winner === 'First Player';
     const player2Winner = match.event_winner === 'Second Player';
+    
+    // Extract player names and seeds
+    let player1Name = match.event_first_player;
+    let player1Seed = match.first_player_seed;
+    let player2Name = match.event_second_player;
+    let player2Seed = match.second_player_seed;
+    
+    // If seed information is not available in the match object,
+    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
+    if (player1Seed === undefined) {
+      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player1Name = seedMatch[1].trim();
+        player1Seed = parseInt(seedMatch[2]);
+      }
+    }
+    
+    if (player2Seed === undefined) {
+      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
+      if (seedMatch) {
+        player2Name = seedMatch[1].trim();
+        player2Seed = parseInt(seedMatch[2]);
+      }
+    }
     
     return (
       <div style={{
@@ -436,7 +530,13 @@ const TournamentDetails = () => {
           ...bracketStyles.playerName,
           ...(player1Winner ? bracketStyles.winner : {})
         }}>
-          <span>{player1Winner && "✓ "}{match.event_first_player}</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {player1Winner && <span style={{ marginRight: '5px' }}>✓</span>}
+            <span>{player1Name}</span>
+            {player1Seed && (
+              <span style={bracketStyles.seed}>[{player1Seed}]</span>
+            )}
+          </div>
           <span style={bracketStyles.score}>
             {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_first : '-') : ''}
           </span>
@@ -445,7 +545,13 @@ const TournamentDetails = () => {
           ...bracketStyles.playerName,
           ...(player2Winner ? bracketStyles.winner : {})
         }}>
-          <span>{player2Winner && "✓ "}{match.event_second_player}</span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {player2Winner && <span style={{ marginRight: '5px' }}>✓</span>}
+            <span>{player2Name}</span>
+            {player2Seed && (
+              <span style={bracketStyles.seed}>[{player2Seed}]</span>
+            )}
+          </div>
           <span style={bracketStyles.score}>
             {isCompleted || isLive ? (match.scores && match.scores[0] ? match.scores[0].score_second : '-') : ''}
           </span>
