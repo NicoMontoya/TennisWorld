@@ -175,23 +175,41 @@ export const getTournamentDetails = async (tournamentId) => {
     if (tournament && (tournament.name.includes('Indian Wells') || tournamentId.toString() === '9')) {
       console.log('Enhancing Indian Wells tournament data with more detailed information');
       
-      // Ensure we have the correct tournament ID for Indian Wells
-      const indianWellsId = tournamentId.toString() === '9' ? tournamentId : '9';
-      
-      // Get more detailed fixtures for Indian Wells
-      const indianWellsFixtures = generateDetailedIndianWellsFixtures(indianWellsId);
-      
-      // Get more detailed live scores for Indian Wells
-      const indianWellsLiveScores = generateDetailedIndianWellsLiveScores(indianWellsId);
-      
-      return {
-        status: 'success',
-        data: {
-          tournament,
-          fixtures: indianWellsFixtures,
-          livescores: indianWellsLiveScores
-        }
-      };
+      try {
+        // Ensure we have the correct tournament ID for Indian Wells
+        const indianWellsId = tournamentId.toString() === '9' ? tournamentId : '9';
+        
+        // Get more detailed fixtures for Indian Wells
+        const indianWellsFixtures = generateDetailedIndianWellsFixtures(indianWellsId);
+        
+        // Get more detailed live scores for Indian Wells
+        const indianWellsLiveScores = generateDetailedIndianWellsLiveScores(indianWellsId);
+        
+        console.log(`Successfully generated detailed data for Indian Wells tournament (ID: ${indianWellsId})`);
+        console.log(`Generated ${indianWellsFixtures.length} fixtures and ${indianWellsLiveScores.length} live scores`);
+        
+        return {
+          status: 'success',
+          data: {
+            tournament,
+            fixtures: indianWellsFixtures || [],
+            livescores: indianWellsLiveScores || []
+          }
+        };
+      } catch (err) {
+        console.error('Error generating detailed Indian Wells data:', err);
+        
+        // Fall back to regular fixtures and live scores
+        console.log('Falling back to regular fixtures and live scores for Indian Wells');
+        return {
+          status: 'success',
+          data: {
+            tournament,
+            fixtures: fixturesResponse.data.fixtures || [],
+            livescores: liveScoresResponse.data.livescores || []
+          }
+        };
+      }
     }
     
     return {
@@ -1123,6 +1141,43 @@ function createMockTournament(tournamentId) {
     end_date: `${currentYear}-06-07`,
     status: 'Upcoming'
   };
+}
+
+// Helper function to get the position for a seed in a tournament bracket
+function getSeedPosition(seed, drawSize) {
+  // Standard seeding positions for tournament draws
+  // This is a simplified version that works for powers of 2
+  if (seed === 1) return 0;
+  if (seed === 2) return drawSize - 1;
+  
+  // For seeds 3-4
+  if (seed === 3) return drawSize / 2;
+  if (seed === 4) return drawSize / 2 - 1;
+  
+  // For seeds 5-8
+  if (seed === 5) return drawSize / 4;
+  if (seed === 6) return drawSize - drawSize / 4 - 1;
+  if (seed === 7) return drawSize / 2 + drawSize / 4;
+  if (seed === 8) return drawSize / 2 - drawSize / 4 - 1;
+  
+  // For seeds 9-16
+  if (seed >= 9 && seed <= 16) {
+    const section = Math.floor((seed - 9) / 2);
+    const position = (seed - 9) % 2;
+    
+    if (section === 0) {
+      return position === 0 ? drawSize / 8 : drawSize / 4 - drawSize / 8 - 1;
+    } else if (section === 1) {
+      return position === 0 ? drawSize / 2 - drawSize / 8 - 1 : drawSize / 2 + drawSize / 8;
+    } else if (section === 2) {
+      return position === 0 ? drawSize / 2 + drawSize / 4 + drawSize / 8 : drawSize / 2 + drawSize / 4 - drawSize / 8 - 1;
+    } else {
+      return position === 0 ? drawSize - drawSize / 8 - 1 : drawSize - drawSize / 4 + drawSize / 8;
+    }
+  }
+  
+  // For other seeds, place them randomly but away from top seeds
+  return Math.floor(Math.random() * drawSize);
 }
 
 // Helper function to transform API Tennis rankings data

@@ -14,12 +14,36 @@ const TournamentDetails = () => {
     const fetchTournamentDetails = async () => {
       setLoading(true)
       try {
+        console.log(`Fetching tournament details for ID: ${id}`)
         const response = await axios.get(`http://localhost:5001/api/tennis/tournaments/${id}/details`)
-        setTournamentDetails(response.data.data)
-        setError(null)
+        
+        // Check if we have valid data
+        if (response.data && response.data.data) {
+          console.log('Tournament details received:', response.data.data.tournament?.name)
+          setTournamentDetails(response.data.data)
+          setError(null)
+        } else {
+          console.error('Invalid response format:', response.data)
+          setError('Invalid tournament data received. Please try again later.')
+        }
       } catch (err) {
         console.error('Error fetching tournament details:', err)
-        setError('Failed to load tournament details. Please try again later.')
+        
+        // More detailed error message
+        let errorMessage = 'Failed to load tournament details. Please try again later.'
+        if (err.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.error('Error response:', err.response.data)
+          console.error('Error status:', err.response.status)
+          errorMessage = `Server error (${err.response.status}): ${err.response.data.message || 'Unknown error'}`
+        } else if (err.request) {
+          // The request was made but no response was received
+          console.error('No response received:', err.request)
+          errorMessage = 'No response from server. Please check your connection.'
+        }
+        
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -517,19 +541,34 @@ const TournamentDetails = () => {
       return orderA - orderB;
     });
     
-    // Ensure we have all the necessary rounds for a complete bracket
-    // This helps make the bracket stable even with missing data
-    const ensureCompleteRounds = () => {
-      // Check if we have the final round
-      if (!sortedRounds.includes('Final')) {
-        return false;
+    // Handle case where we don't have a complete bracket structure
+    // This is more flexible and will work with different tournament formats
+    const prepareAndValidateBracket = () => {
+      // If we don't have any rounds, we can't render a bracket
+      if (sortedRounds.length === 0) {
+        return { isValid: false };
+      }
+      
+      // Get the final round (first in the sorted array)
+      const finalRound = sortedRounds[0];
+      
+      // If we don't have a final match, try to use the most advanced round available
+      if (!fixturesByRound[finalRound] || fixturesByRound[finalRound].length === 0) {
+        // Find the most advanced round that has matches
+        for (const round of sortedRounds) {
+          if (fixturesByRound[round] && fixturesByRound[round].length > 0) {
+            return {
+              isValid: true,
+              finalRound: round,
+              finalMatch: fixturesByRound[round][0]
+            };
+          }
+        }
+        return { isValid: false };
       }
       
       // Get the final match
-      const finalMatch = fixturesByRound['Final'][0];
-      if (!finalMatch) {
-        return false;
-      }
+      const finalMatch = fixturesByRound[finalRound][0];
       
       // For each round, ensure we have the expected number of matches
       let expectedMatches = 1; // Start with 1 for the final
@@ -557,14 +596,18 @@ const TournamentDetails = () => {
         }
       }
       
-      return true;
+      return {
+        isValid: true,
+        finalRound,
+        finalMatch
+      };
     };
     
-    // Try to ensure we have a complete bracket
-    const isBracketComplete = ensureCompleteRounds();
+    // Prepare and validate the bracket
+    const bracketData = prepareAndValidateBracket();
     
-    // If we couldn't create a complete bracket, show a message
-    if (!isBracketComplete) {
+    // If we couldn't create a valid bracket, show a message
+    if (!bracketData.isValid) {
       return (
         <div style={{ textAlign: 'center', padding: '30px' }}>
           <p>Tournament bracket is not available or incomplete.</p>
@@ -572,9 +615,8 @@ const TournamentDetails = () => {
       );
     }
     
-    // Get the final match
-    const finalRound = sortedRounds[0];
-    const finalMatch = fixturesByRound[finalRound][0];
+    // Get the final match and round from the validated data
+    const { finalRound, finalMatch } = bracketData;
     
     return (
       <div style={bracketStyles.container}>
