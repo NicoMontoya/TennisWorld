@@ -1,0 +1,147 @@
+Connecting to MongoDB...
+Using connection string: mongodb+srv://nicomontoya:****@startertw.xzcxt.mongodb.net/
+MongoDB Connected: startertw-shard-00-00.xzcxt.mongodb.net
+Number of players in the database: 200
+Sample ATP players:
+[
+  {
+    "_id": "67e0b844f1520764b1dbaac0",
+    "player_id": 2072,
+    "player_name": "Jannik Sinner",
+    "country": "Italy",
+    "type": "ATP",
+    "rank": 1,
+    "points": 11330,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.177Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.191Z",
+    "updatedAt": "2025-03-24T01:41:24.191Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbaac1",
+    "player_id": 1980,
+    "player_name": "Alexander Zverev",
+    "country": "Germany",
+    "type": "ATP",
+    "rank": 2,
+    "points": 7945,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.177Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.191Z",
+    "updatedAt": "2025-03-24T01:41:24.191Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbaac2",
+    "player_id": 2382,
+    "player_name": "Carlos Alcaraz",
+    "country": "Spain",
+    "type": "ATP",
+    "rank": 3,
+    "points": 6910,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.177Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.191Z",
+    "updatedAt": "2025-03-24T01:41:24.191Z"
+  }
+]
+Sample WTA players:
+[
+  {
+    "_id": "67e0b844f1520764b1dbab24",
+    "player_id": 1989,
+    "player_name": "Aryna Sabalenka",
+    "country": "World",
+    "type": "WTA",
+    "rank": 1,
+    "points": 9606,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.180Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.193Z",
+    "updatedAt": "2025-03-24T01:41:24.193Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbab25",
+    "player_id": 1910,
+    "player_name": "Iga Swiatek",
+    "country": "Poland",
+    "type": "WTA",
+    "rank": 2,
+    "points": 7375,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.180Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.193Z",
+    "updatedAt": "2025-03-24T01:41:24.193Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbab26",
+    "player_id": 2176,
+    "player_name": "Coco Gauff",
+    "country": "USA",
+    "type": "WTA",
+    "rank": 3,
+    "points": 6063,
+    "movement": 0,
+    "lastUpdated": "2025-03-24T01:41:24.180Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.193Z",
+    "updatedAt": "2025-03-24T01:41:24.193Z"
+  }
+]
+Number of tournaments in the database: 12
+Sample tournaments:
+[
+  {
+    "_id": "67e0b844f1520764b1dbab89",
+    "tournament_id": 9,
+    "name": "Indian Wells Masters",
+    "location": "Indian Wells, USA",
+    "surface": "Hard",
+    "category": "Masters 1000",
+    "prize_money": "$9157167,100,000",
+    "start_date": "2025-03-06T00:00:00.000Z",
+    "end_date": "2025-03-17T00:00:00.000Z",
+    "status": "Ongoing",
+    "lastUpdated": "2025-03-24T01:41:24.511Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.514Z",
+    "updatedAt": "2025-03-24T01:41:24.514Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbab8a",
+    "tournament_id": 5,
+    "name": "Miami Open",
+    "location": "Miami, USA",
+    "surface": "Hard",
+    "category": "Masters 1000",
+    "prize_money": "$8906805,800,000",
+    "start_date": "2025-03-20T00:00:00.000Z",
+    "end_date": "2025-03-31T00:00:00.000Z",
+    "status": "Upcoming",
+    "lastUpdated": "2025-03-24T01:41:24.512Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.514Z",
+    "updatedAt": "2025-03-24T01:41:24.514Z"
+  },
+  {
+    "_id": "67e0b844f1520764b1dbab8b",
+    "tournament_id": 11,
+    "name": "Monte Carlo Masters",
+    "location": "Monte Carlo, Monaco",
+    "surface": "Clay",
+    "category": "Masters 1000",
+    "prize_money": "$5879965,950,000",
+    "start_date": "2025-04-07T00:00:00.000Z",
+    "end_date": "2025-04-14T00:00:00.000Z",
+    "status": "Upcoming",
+    "lastUpdated": "2025-03-24T01:41:24.512Z",
+    "__v": 0,
+    "createdAt": "2025-03-24T01:41:24.514Z",
+    "updatedAt": "2025-03-24T01:41:24.514Z"
+  }
+]
+Connection closed successfully

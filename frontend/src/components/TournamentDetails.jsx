@@ -85,6 +85,27 @@ const TournamentDetails = () => {
       return orderA - orderB
     })
   }
+  
+  // Sort fixtures within a round by seed
+  const sortFixturesBySeeding = (fixtures) => {
+    if (!fixtures) return []
+    
+    return [...fixtures].sort((a, b) => {
+      // First try to sort by first player seed
+      const seedA1 = a.first_player_seed !== undefined ? a.first_player_seed : 999
+      const seedB1 = b.first_player_seed !== undefined ? b.first_player_seed : 999
+      
+      if (seedA1 !== seedB1) {
+        return seedA1 - seedB1
+      }
+      
+      // If first player seeds are the same, try second player seeds
+      const seedA2 = a.second_player_seed !== undefined ? a.second_player_seed : 999
+      const seedB2 = b.second_player_seed !== undefined ? b.second_player_seed : 999
+      
+      return seedA2 - seedB2
+    })
+  }
 
   // Filter fixtures based on active tab
   const getFilteredFixtures = () => {
@@ -125,24 +146,6 @@ const TournamentDetails = () => {
     let player1Seed = match.first_player_seed;
     let player2Name = match.event_second_player;
     let player2Seed = match.second_player_seed;
-    
-    // If seed information is not available in the match object,
-    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
-    if (player1Seed === undefined) {
-      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player1Name = seedMatch[1].trim();
-        player1Seed = parseInt(seedMatch[2]);
-      }
-    }
-    
-    if (player2Seed === undefined) {
-      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player2Name = seedMatch[1].trim();
-        player2Seed = parseInt(seedMatch[2]);
-      }
-    }
     
     return (
       <div 
@@ -238,24 +241,6 @@ const TournamentDetails = () => {
     let player1Seed = match.first_player_seed;
     let player2Name = match.event_second_player;
     let player2Seed = match.second_player_seed;
-    
-    // If seed information is not available in the match object,
-    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
-    if (player1Seed === undefined) {
-      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player1Name = seedMatch[1].trim();
-        player1Seed = parseInt(seedMatch[2]);
-      }
-    }
-    
-    if (player2Seed === undefined) {
-      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player2Name = seedMatch[1].trim();
-        player2Seed = parseInt(seedMatch[2]);
-      }
-    }
     
     return (
       <div 
@@ -503,24 +488,6 @@ const TournamentDetails = () => {
     let player2Name = match.event_second_player;
     let player2Seed = match.second_player_seed;
     
-    // If seed information is not available in the match object,
-    // try to extract it from the player name (e.g., "Novak Djokovic [1]")
-    if (player1Seed === undefined) {
-      const seedMatch = player1Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player1Name = seedMatch[1].trim();
-        player1Seed = parseInt(seedMatch[2]);
-      }
-    }
-    
-    if (player2Seed === undefined) {
-      const seedMatch = player2Name.match(/(.+)\s+\[(\d+)\]$/);
-      if (seedMatch) {
-        player2Name = seedMatch[1].trim();
-        player2Seed = parseInt(seedMatch[2]);
-      }
-    }
-    
     return (
       <div style={{
         ...bracketStyles.matchBox,
@@ -645,6 +612,11 @@ const TournamentDetails = () => {
       const orderA = roundOrder[a] !== undefined ? roundOrder[a] : -1;
       const orderB = roundOrder[b] !== undefined ? roundOrder[b] : -1;
       return orderA - orderB;
+    });
+    
+    // Sort fixtures within each round by seed
+    Object.keys(fixturesByRound).forEach(round => {
+      fixturesByRound[round] = sortFixturesBySeeding(fixturesByRound[round]);
     });
     
     // Handle case where we don't have a complete bracket structure

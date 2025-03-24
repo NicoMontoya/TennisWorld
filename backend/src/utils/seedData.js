@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import connectDB from '../config/db.js';
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
+import { getRankings, getTournaments } from '../services/tennisApiService.js';
 
 dotenv.config();
 
@@ -228,8 +229,12 @@ const mockTournaments = [
 // Function to seed the database
 const seedDatabase = async () => {
   try {
+    console.log('Attempting to connect to MongoDB...');
+    console.log(`Using connection string: ${process.env.MONGODB_URI.replace(/:[^:]*@/, ':****@')}`);
+    
     // Connect to the database
     await connectDB();
+    console.log('Successfully connected to MongoDB');
     
     // Clear existing data
     await Player.deleteMany({});
@@ -237,15 +242,96 @@ const seedDatabase = async () => {
     
     console.log('Previous data cleared');
     
-    // Insert new data
-    await Player.insertMany([...mockATPRankings, ...mockWTARankings]);
-    await Tournament.insertMany(mockTournaments);
+    // Fetch ATP rankings from the API
+    console.log('Fetching ATP rankings from the API...');
+    const atpResponse = await getRankings('ATP');
+    if (atpResponse.status !== 'success') {
+      throw new Error('Failed to fetch ATP rankings');
+    }
     
-    console.log('Database seeded successfully');
+    // Fetch WTA rankings from the API
+    console.log('Fetching WTA rankings from the API...');
+    const wtaResponse = await getRankings('WTA');
+    if (wtaResponse.status !== 'success') {
+      throw new Error('Failed to fetch WTA rankings');
+    }
+    
+    // Prepare player data for database
+    const atpPlayers = atpResponse.data.rankings.map(player => ({
+      player_id: player.player_id,
+      player_name: player.player_name,
+      country: player.country,
+      type: 'ATP',
+      rank: player.rank,
+      points: player.points,
+      movement: player.movement || 0
+    }));
+    
+    const wtaPlayers = wtaResponse.data.rankings.map(player => ({
+      player_id: player.player_id,
+      player_name: player.player_name,
+      country: player.country,
+      type: 'WTA',
+      rank: player.rank,
+      points: player.points,
+      movement: player.movement || 0
+    }));
+    
+    // Fetch tournaments from the API
+    console.log('Fetching tournaments from the API...');
+    const tournamentsResponse = await getTournaments();
+    if (tournamentsResponse.status !== 'success') {
+      throw new Error('Failed to fetch tournaments');
+    }
+    
+    // Prepare tournament data for database
+    const tournaments = tournamentsResponse.data.tournaments.map(tournament => ({
+      tournament_id: tournament.tournament_id,
+      name: tournament.name,
+      location: tournament.location,
+      surface: tournament.surface,
+      category: tournament.category,
+      prize_money: tournament.prize_money,
+      start_date: new Date(tournament.start_date),
+      end_date: new Date(tournament.end_date),
+      status: tournament.status
+    }));
+    
+    // Insert data into the database
+    console.log('Inserting player data into the database...');
+    await Player.insertMany([...atpPlayers, ...wtaPlayers]);
+    
+    console.log('Inserting tournament data into the database...');
+    await Tournament.insertMany(tournaments);
+    
+    console.log('Database seeded successfully with data from the API');
+    
+    // Log some stats
+    console.log(`Inserted ${atpPlayers.length} ATP players`);
+    console.log(`Inserted ${wtaPlayers.length} WTA players`);
+    console.log(`Inserted ${tournaments.length} tournaments`);
+    
     process.exit(0);
   } catch (error) {
     console.error('Error seeding database:', error);
-    process.exit(1);
+    console.error('Error details:', error.message);
+    if (error.name === 'MongoServerError') {
+      console.error('MongoDB Server Error Code:', error.code);
+    }
+    
+    // If API fails, fall back to mock data
+    console.log('Falling back to mock data...');
+    try {
+      // Insert mock data
+      await Player.insertMany([...mockATPRankings, ...mockWTARankings]);
+      await Tournament.insertMany(mockTournaments);
+      
+      console.log('Database seeded successfully with mock data');
+      process.exit(0);
+    } catch (fallbackError) {
+      console.error('Error seeding database with mock data:', fallbackError);
+      process.exit(1);
+    }
   }
 };
 

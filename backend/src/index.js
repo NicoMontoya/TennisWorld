@@ -5,9 +5,13 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/authMiddleware.js';
 import { getRankings, getTournaments, getTournamentDetails } from './services/tennisApiService.js';
 import startMcpProxy from './services/mcpProxy.js';
+import connectDB from './config/db.js';
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 // Create Express app
 const app = express();
@@ -240,191 +244,19 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Import routes
+import tennisRoutes from './routes/tennisRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+
 // Routes
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to TennisWorld API' });
 });
 
-// User routes
-app.post('/api/users/register', (req, res) => {
-  const { username, email, password } = req.body;
-  
-  // Check if user already exists
-  const userExists = users.find(u => u.email === email || u.username === username);
-  if (userExists) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'User with that email or username already exists'
-    });
-  }
-  
-  // Create new user (in a real app, we would hash the password)
-  const newUser = {
-    id: Date.now().toString(),
-    username,
-    email,
-    password
-  };
-  
-  users.push(newUser);
-  
-  res.status(201).json({
-    status: 'success',
-    message: 'User registered successfully',
-    user: {
-      id: newUser.id,
-      username: newUser.username,
-      email: newUser.email
-    }
-  });
-});
+// Use routes
+app.use('/api/tennis', tennisRoutes);
+app.use('/api/users', userRoutes);
 
-
-// Tennis API endpoints using our service
-app.get('/api/tennis/rankings/:type', async (req, res) => {
-  const { type } = req.params;
-  
-  // Validate type parameter
-  if (type !== 'ATP' && type !== 'WTA') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid ranking type. Must be ATP or WTA'
-    });
-  }
-  
-  try {
-    // Get rankings from our service
-    const result = await getRankings(type);
-    res.json(result);
-  } catch (error) {
-    console.error('Error in rankings endpoint:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Server error while fetching rankings'
-    });
-  }
-});
-
-app.get('/api/tennis/players/:id', (req, res) => {
-  const { id } = req.params;
-  const playerId = parseInt(id);
-  
-  // Find player in either ATP or WTA rankings
-  const player = [...mockATPRankings, ...mockWTARankings].find(p => p.player_id === playerId);
-  
-  if (!player) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'Player not found'
-    });
-  }
-  
-  res.json({
-    status: 'success',
-    data: {
-      player
-    }
-  });
-});
-
-app.get('/api/tennis/tournaments', async (req, res) => {
-  try {
-    // Get tournaments from our service
-    const result = await getTournaments();
-    res.json(result);
-  } catch (error) {
-    console.error('Error in tournaments endpoint:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Server error while fetching tournaments'
-    });
-  }
-});
-
-app.get('/api/tennis/tournaments/:id/details', async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`Tournament details endpoint called with id: ${id}`);
-    
-    // Get tournament details from the API
-    const response = await getTournamentDetails(id);
-    
-    if (response.status === 'error') {
-      console.log(`Error response from getTournamentDetails: ${response.message}`);
-      return res.status(500).json({
-        status: 'error',
-        message: response.message || 'Error fetching tournament details'
-      });
-    }
-    
-    console.log(`Successfully fetched tournament details for id: ${id}`);
-    res.json({
-      status: 'success',
-      data: response.data
-    });
-  } catch (error) {
-    console.error('Error fetching tournament details:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Server error while fetching tournament details'
-    });
-  }
-});
-
-app.get('/api/tennis/tournaments/:id', (req, res) => {
-  const { id } = req.params;
-  const tournamentId = parseInt(id);
-  
-  const tournament = mockTournaments.find(t => t.tournament_id === tournamentId);
-  
-  if (!tournament) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'Tournament not found'
-    });
-  }
-  
-  res.json({
-    status: 'success',
-    data: {
-      tournament
-    }
-  });
-});
-
-app.get('/api/tennis/tournaments/status/:status', (req, res) => {
-  const { status } = req.params;
-  
-  // Validate status parameter
-  if (!['Upcoming', 'Ongoing', 'Completed'].includes(status)) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Invalid tournament status. Must be Upcoming, Ongoing, or Completed'
-    });
-  }
-  
-  const tournaments = mockTournaments.filter(t => t.status === status);
-  
-  res.json({
-    status: 'success',
-    data: {
-      tournaments
-    }
-  });
-});
-
-app.get('/api/tennis/tournaments/category/:category', (req, res) => {
-  const { category } = req.params;
-  
-  const tournaments = mockTournaments.filter(t => t.category === category);
-  
-  res.json({
-    status: 'success',
-    data: {
-      tournaments
-    }
-  });
-});
 
 // Error handling middleware
 app.use(errorHandler);

@@ -1,6 +1,6 @@
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
-import { getTournamentDetails, getRankings, getTournaments } from '../services/tennisApiService.js';
+import { getTournamentDetails, getRankings as fetchRankings, getTournaments as fetchTournaments } from '../services/tennisApiService.js';
 
 // @desc    Get player rankings by type (ATP or WTA)
 // @route   GET /api/tennis/rankings/:type
@@ -19,7 +19,7 @@ export const getRankings = async (req, res) => {
     
     // Get rankings directly from the API
     console.log(`Getting ${type} rankings from API...`);
-    const response = await getRankings(type);
+    const response = await fetchRankings(type);
     
     if (response.status === 'error') {
       return res.status(500).json({
@@ -81,7 +81,7 @@ export const getTournaments = async (req, res) => {
   try {
     // Get tournaments directly from the API
     console.log('Getting tournaments from API...');
-    const response = await getTournaments();
+    const response = await fetchTournaments();
     
     if (response.status === 'error') {
       return res.status(500).json({
