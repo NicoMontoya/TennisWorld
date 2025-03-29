@@ -1,5 +1,6 @@
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
+import Match from '../models/Match.js';
 import { getTournamentDetails, getRankings as fetchRankings, getTournaments as fetchTournaments } from '../services/tennisApiService.js';
 
 // @desc    Get player rankings by type (ATP or WTA)
@@ -17,25 +18,29 @@ export const getRankings = async (req, res) => {
       });
     }
     
-    // Get rankings directly from the API
-    console.log(`Getting ${type} rankings from API...`);
-    const response = await fetchRankings(type);
+    // Get rankings from MongoDB
+    console.log(`Getting ${type} rankings from MongoDB...`);
+    const players = await Player.find({ type })
+      .sort({ rank: 1 })
+      .lean();
     
-    if (response.status === 'error') {
-      return res.status(500).json({
+    if (!players || players.length === 0) {
+      return res.status(404).json({
         status: 'error',
-        message: response.message || 'Error fetching rankings'
+        message: `No ${type} rankings found in the database`
       });
     }
     
+    // Format the response to match the API response structure
+    // that the frontend expects
     res.json({
       status: 'success',
       data: {
-        rankings: response.data.rankings
+        rankings: players
       }
     });
   } catch (error) {
-    console.error('Error fetching rankings:', error);
+    console.error('Error fetching rankings from MongoDB:', error);
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching rankings'
@@ -79,25 +84,29 @@ export const getPlayerById = async (req, res) => {
 // @access  Public
 export const getTournaments = async (req, res) => {
   try {
-    // Get tournaments directly from the API
-    console.log('Getting tournaments from API...');
-    const response = await fetchTournaments();
+    // Get tournaments from MongoDB
+    console.log('Getting tournaments from MongoDB...');
+    const tournaments = await Tournament.find()
+      .sort({ start_date: 1 })
+      .lean();
     
-    if (response.status === 'error') {
-      return res.status(500).json({
+    if (!tournaments || tournaments.length === 0) {
+      return res.status(404).json({
         status: 'error',
-        message: response.message || 'Error fetching tournaments'
+        message: 'No tournaments found in the database'
       });
     }
     
+    // Format the response to match the API response structure
+    // that the frontend expects
     res.json({
       status: 'success',
       data: {
-        tournaments: response.data.tournaments
+        tournaments: tournaments
       }
     });
   } catch (error) {
-    console.error('Error fetching tournaments:', error);
+    console.error('Error fetching tournaments from MongoDB:', error);
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournaments'
@@ -194,6 +203,7 @@ export const getTournamentsByCategory = async (req, res) => {
   }
 };
 
+
 // @desc    Get tournament details including fixtures and live scores
 // @route   GET /api/tennis/tournaments/:id/details
 // @access  Public
@@ -202,24 +212,60 @@ export const getTournamentDetailsById = async (req, res) => {
     const { id } = req.params;
     console.log(`getTournamentDetailsById called with id: ${id}`);
     
-    // Get tournament details from the API
-    const response = await getTournamentDetails(id);
+    // Convert id to number if it's a string
+    const tournamentId = parseInt(id, 10);
     
-    if (response.status === 'error') {
-      console.log(`Error response from getTournamentDetails: ${response.message}`);
-      return res.status(500).json({
+    // Get tournament details from MongoDB
+    const tournament = await Tournament.findOne({ tournament_id: tournamentId }).lean();
+    
+    if (!tournament) {
+      return res.status(404).json({
         status: 'error',
-        message: response.message || 'Error fetching tournament details'
+        message: 'Tournament not found'
       });
     }
+    
+    // Get matches for this tournament from MongoDB
+    const matches = await Match.find({ tournament_id: tournamentId }).lean();
+    
+    // Group matches by round
+    const matchesByRound = {};
+    matches.forEach(match => {
+      if (!matchesByRound[match.round]) {
+        matchesByRound[match.round] = [];
+      }
+      matchesByRound[match.round].push(match);
+    });
+    
+    // Get player details for all matches
+    const playerIds = [...new Set(matches.flatMap(match => [match.player1_id, match.player2_id]))];
+    const players = await Player.find({ player_id: { $in: playerIds } }).lean();
+    
+    // Create a map of player_id to player details
+    const playerMap = {};
+    players.forEach(player => {
+      playerMap[player.player_id] = player;
+    });
+    
+    // Enhance matches with player details
+    const enhancedMatches = matches.map(match => ({
+      ...match,
+      player1: playerMap[match.player1_id] || { player_name: 'Unknown Player' },
+      player2: playerMap[match.player2_id] || { player_name: 'Unknown Player' },
+      winner: match.winner_id ? playerMap[match.winner_id] : null
+    }));
     
     console.log(`Successfully fetched tournament details for id: ${id}`);
     res.json({
       status: 'success',
-      data: response.data
+      data: {
+        tournament,
+        matches: enhancedMatches,
+        matchesByRound
+      }
     });
   } catch (error) {
-    console.error('Error fetching tournament details:', error);
+    console.error('Error fetching tournament details from MongoDB:', error);
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournament details'
