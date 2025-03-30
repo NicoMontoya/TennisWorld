@@ -11,30 +11,32 @@ function App() {
   const [user, setUser] = useState(null)
 
   return (
-    <div className="container">
+    <div style={{ minHeight: '100vh' }}>
       <Navigation />
-      <Routes>
-        <Route 
-          path="/" 
-          element={user ? <Navigate to="/welcome" /> : <Register setUser={setUser} />} 
-        />
-        <Route 
-          path="/welcome" 
-          element={user ? <Welcome user={user} /> : <Navigate to="/" />} 
-        />
-        <Route 
-          path="/rankings" 
-          element={<Rankings />} 
-        />
-        <Route 
-          path="/tournaments" 
-          element={<Tournaments />} 
-        />
-        <Route 
-          path="/tournament/:id" 
-          element={<TournamentDetails />} 
-        />
-      </Routes>
+      <div className="container">
+        <Routes>
+          <Route 
+            path="/" 
+            element={user ? <Navigate to="/welcome" /> : <Register setUser={setUser} />} 
+          />
+          <Route 
+            path="/welcome" 
+            element={user ? <Welcome user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/rankings" 
+            element={<Rankings />} 
+          />
+          <Route 
+            path="/tournaments" 
+            element={<Tournaments />} 
+          />
+          <Route 
+            path="/tournament/:id" 
+            element={<TournamentDetails />} 
+          />
+        </Routes>
+      </div>
     </div>
   )
 }

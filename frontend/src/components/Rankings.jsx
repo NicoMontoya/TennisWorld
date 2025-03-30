@@ -64,35 +64,81 @@ const Rankings = () => {
   }
 
   return (
-    <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px' }}>
-      <h1 className="text-center" style={{ color: 'var(--primary-color)', marginBottom: '10px' }}>
+    <div className="modern-card fade-in">
+      <h1 style={{ 
+        color: 'var(--primary-color)', 
+        fontSize: '32px', 
+        fontWeight: 'bold', 
+        textAlign: 'center', 
+        marginBottom: '24px',
+        position: 'relative',
+        display: 'inline-block',
+        left: '50%',
+        transform: 'translateX(-50%)'
+      }}>
         Tennis Rankings
+        <div style={{
+          height: '4px',
+          width: '60px',
+          background: 'var(--secondary-color)',
+          position: 'absolute',
+          bottom: '-10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          borderRadius: 'var(--border-radius-full)'
+        }}></div>
       </h1>
-      <div className="text-center" style={{ marginBottom: '30px' }}>
-        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>
+      
+      <div className="text-center" style={{ marginBottom: '36px', marginTop: '30px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-light)', marginBottom: '12px' }}>
           Last updated: {lastUpdated.toLocaleTimeString()}
-          {refreshing && <span style={{ marginLeft: '10px', color: 'var(--primary-color)' }}>● Refreshing...</span>}
+          {refreshing && (
+            <span style={{ 
+              marginLeft: '10px', 
+              color: 'var(--primary-color)',
+              display: 'inline-flex',
+              alignItems: 'center'
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--primary-color)',
+                marginRight: '6px',
+                animation: 'pulsOut 1.5s infinite'
+              }}></span>
+              Refreshing...
+            </span>
+          )}
         </p>
         <button 
-          className="btn btn-sm btn-secondary" 
+          className="btn-outline btn-sm"
           onClick={handleRefresh}
           disabled={refreshing}
-          style={{ fontSize: '0.8rem' }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
         >
-          Refresh Now
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          {refreshing ? 'Refreshing...' : 'Refresh Now'}
         </button>
       </div>
 
-      <div style={{ marginBottom: '30px', textAlign: 'center' }}>
+      <div className="modern-button-group">
         <button 
-          className={`btn ${type === 'ATP' ? '' : 'btn-secondary'}`} 
+          className={type === 'ATP' ? 'btn btn-gradient' : 'btn-outline'}
           onClick={() => handleTypeChange('ATP')}
-          style={{ marginRight: '10px' }}
         >
           ATP (Men)
         </button>
         <button 
-          className={`btn ${type === 'WTA' ? '' : 'btn-secondary'}`} 
+          className={type === 'WTA' ? 'btn btn-gradient' : 'btn-outline'}
           onClick={() => handleTypeChange('WTA')}
         >
           WTA (Women)
@@ -100,35 +146,95 @@ const Rankings = () => {
       </div>
 
       {loading ? (
-        <div className="text-center">Loading rankings...</div>
+        <div className="modern-flex modern-flex-center" style={{ padding: '60px 0' }}>
+          <div className="modern-spinner"></div>
+        </div>
       ) : error ? (
-        <div className="error text-center">{error}</div>
+        <div style={{ 
+          backgroundColor: 'rgba(229, 57, 53, 0.1)', 
+          border: '1px solid rgba(229, 57, 53, 0.3)', 
+          color: 'var(--error-color)', 
+          padding: '16px', 
+          borderRadius: 'var(--border-radius-md)', 
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {error}
+        </div>
       ) : (
-        <div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', borderRadius: 'var(--border-radius-lg)' }}>
+          <table className="modern-table">
             <thead>
-              <tr style={{ backgroundColor: 'var(--secondary-color)' }}>
-                <th style={tableHeaderStyle}>Rank</th>
-                <th style={tableHeaderStyle}>Player</th>
-                <th style={tableHeaderStyle}>Country</th>
-                <th style={tableHeaderStyle}>Points</th>
-                <th style={tableHeaderStyle}>Movement</th>
+              <tr>
+                <th style={{ width: '70px', borderTopLeftRadius: 'var(--border-radius-md)' }}>Rank</th>
+                <th>Player</th>
+                <th>Country</th>
+                <th>Points</th>
+                <th style={{ width: '100px', borderTopRightRadius: 'var(--border-radius-md)' }}>Movement</th>
               </tr>
             </thead>
             <tbody>
-              {rankings.slice(0, 100).map((player) => (
-                <tr key={player.player_id} style={tableRowStyle}>
-                  <td style={tableCellStyle}>{player.rank}</td>
-                  <td style={tableCellStyle}>{player.player_name}</td>
-                  <td style={tableCellStyle}>{player.country}</td>
-                  <td style={tableCellStyle}>{player.points.toLocaleString()}</td>
-                  <td style={tableCellStyle}>
-                    {player.movement > 0 ? (
-                      <span style={{ color: 'green' }}>▲ {player.movement}</span>
-                    ) : player.movement < 0 ? (
-                      <span style={{ color: 'red' }}>▼ {Math.abs(player.movement)}</span>
+              {rankings.slice(0, 100).map((player, index) => (
+                <tr key={player.player_id} style={{ 
+                  backgroundColor: index % 2 === 0 ? 'white' : 'rgba(0,0,0,0.02)',
+                  transition: 'all var(--transition-fast)'
+                }}>
+                  <td style={{ fontWeight: '600' }}>
+                    {player.rank <= 3 ? (
+                      <span className="modern-badge" style={{
+                        backgroundColor: player.rank === 1 ? '#FFD700' : player.rank === 2 ? '#C0C0C0' : '#CD7F32',
+                        color: player.rank === 1 ? '#000' : player.rank === 2 ? '#000' : '#fff',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                      }}>
+                        {player.rank}
+                      </span>
                     ) : (
-                      <span style={{ color: 'gray' }}>—</span>
+                      player.rank
+                    )}
+                  </td>
+                  <td style={{ fontWeight: '600' }}>{player.player_name}</td>
+                  <td>{player.country}</td>
+                  <td>{player.points.toLocaleString()}</td>
+                  <td>
+                    {player.movement > 0 ? (
+                      <span className="modern-badge modern-badge-success" style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center',
+                        padding: '4px 8px'
+                      }}>
+                        <svg style={{ width: '14px', height: '14px', marginRight: '4px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                        {player.movement}
+                      </span>
+                    ) : player.movement < 0 ? (
+                      <span className="modern-badge modern-badge-error" style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center',
+                        padding: '4px 8px'
+                      }}>
+                        <svg style={{ width: '14px', height: '14px', marginRight: '4px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {Math.abs(player.movement)}
+                      </span>
+                    ) : (
+                      <span className="modern-badge modern-badge-gray">—</span>
                     )}
                   </td>
                 </tr>
@@ -137,30 +243,19 @@ const Rankings = () => {
           </table>
           
           {rankings.length === 0 && (
-            <div className="text-center" style={{ marginTop: '20px' }}>
-              No rankings data available.
+            <div className="text-center" style={{ padding: '40px 0', color: 'var(--text-light)' }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px' }}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <p>No rankings data available.</p>
             </div>
           )}
         </div>
       )}
     </div>
   )
-}
-
-// Styles
-const tableHeaderStyle = {
-  padding: '12px 15px',
-  textAlign: 'left',
-  fontWeight: 'bold',
-  borderBottom: '2px solid var(--primary-color)'
-}
-
-const tableRowStyle = {
-  borderBottom: '1px solid #ddd'
-}
-
-const tableCellStyle = {
-  padding: '12px 15px'
 }
 
 export default Rankings

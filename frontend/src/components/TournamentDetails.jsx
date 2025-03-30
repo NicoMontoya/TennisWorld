@@ -718,20 +718,40 @@ const TournamentDetails = () => {
 
   if (loading) {
     return (
-      <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px', textAlign: 'center' }}>
-        <h2>Loading tournament details...</h2>
+      <div className="modern-card text-center">
+        <div className="modern-flex modern-flex-center" style={{ padding: '60px 0' }}>
+          <div className="modern-spinner"></div>
+        </div>
+        <h2 style={{ fontSize: '20px', color: 'var(--text-light)' }}>Loading tournament details...</h2>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px', textAlign: 'center' }}>
-        <h2 style={{ color: 'red' }}>{error}</h2>
+      <div className="modern-card text-center">
+        <div style={{ 
+          backgroundColor: 'rgba(229, 57, 53, 0.1)', 
+          border: '1px solid rgba(229, 57, 53, 0.3)', 
+          color: 'var(--error-color)', 
+          padding: '16px', 
+          borderRadius: 'var(--border-radius-md)', 
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{error}</span>
+        </div>
         <button 
-          className="btn" 
+          className="btn"
           onClick={() => navigate('/tournaments')}
-          style={{ marginTop: '20px' }}
         >
           Back to Tournaments
         </button>
@@ -741,12 +761,11 @@ const TournamentDetails = () => {
 
   if (!tournamentDetails || !tournamentDetails.tournament) {
     return (
-      <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px', textAlign: 'center' }}>
-        <h2>Tournament not found</h2>
+      <div className="modern-card text-center">
+        <h2 style={{ fontSize: '20px', color: 'var(--text-light)', marginBottom: '24px' }}>Tournament not found</h2>
         <button 
-          className="btn" 
+          className="btn"
           onClick={() => navigate('/tournaments')}
-          style={{ marginTop: '20px' }}
         >
           Back to Tournaments
         </button>
@@ -763,108 +782,159 @@ const TournamentDetails = () => {
   const completedMatchesCount = fixtures ? fixtures.filter(f => f.event_status === 'Finished').length : 0
 
   return (
-    <div className="card" style={{ maxWidth: '1000px', margin: '50px auto', padding: '40px' }}>
-      <div style={{ marginBottom: '20px' }}>
+    <div className="modern-card fade-in">
+      <div style={{ marginBottom: '24px' }}>
         <button 
-          className="btn btn-sm btn-secondary" 
+          className="btn-outline btn-sm"
           onClick={() => navigate('/tournaments')}
-          style={{ marginBottom: '20px' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          ← Back to Tournaments
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5"></path>
+            <path d="M12 19l-7-7 7-7"></path>
+          </svg>
+          Back to Tournaments
         </button>
       </div>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        marginBottom: '30px',
+        flexWrap: 'wrap',
+        gap: '20px'
+      }}>
         <div>
-          <h1 style={{ color: 'var(--primary-color)', marginBottom: '10px' }}>
+          <h1 style={{ 
+            color: 'var(--primary-color)', 
+            fontSize: '28px', 
+            fontWeight: 'bold', 
+            marginBottom: '16px',
+            position: 'relative',
+            display: 'inline-block'
+          }}>
             {tournament.name}
+            <div style={{
+              height: '3px',
+              width: '40px',
+              background: 'var(--secondary-color)',
+              position: 'absolute',
+              bottom: '-8px',
+              left: '0',
+              borderRadius: 'var(--border-radius-full)'
+            }}></div>
           </h1>
-          <p style={{ fontSize: '1.2rem', marginBottom: '5px' }}><strong>Location:</strong> {tournament.location}</p>
-          <p style={{ fontSize: '1.2rem', marginBottom: '5px' }}><strong>Surface:</strong> {tournament.surface}</p>
-          <p style={{ fontSize: '1.2rem', marginBottom: '5px' }}>
-            <strong>Dates:</strong> {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
-          </p>
-          <p style={{ fontSize: '1.2rem', marginBottom: '5px' }}><strong>Prize Money:</strong> {tournament.prize_money}</p>
+          <div style={{ marginTop: '20px' }}>
+            <p style={{ 
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span style={{ fontWeight: '600' }}>Location:</span> {tournament.location}
+            </p>
+            <p style={{ 
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12h20"></path>
+                <path d="M6 16l-4-4 4-4"></path>
+                <path d="M18 8l4 4-4 4"></path>
+              </svg>
+              <span style={{ fontWeight: '600' }}>Surface:</span> {tournament.surface}
+            </p>
+            <p style={{ 
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span style={{ fontWeight: '600' }}>Dates:</span> {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+            </p>
+            <p style={{ 
+              marginBottom: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
+                <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
+                <path d="M18 12a2 2 0 0 0 0 4h2v-4h-2z"></path>
+              </svg>
+              <span style={{ fontWeight: '600' }}>Prize Money:</span> {tournament.prize_money}
+            </p>
+          </div>
         </div>
         
-        <div style={{ 
-          backgroundColor: tournament.status === 'Completed' ? '#d3d3d3' : 'var(--secondary-color)',
-          color: 'var(--text-color)',
-          padding: '10px 20px',
-          borderRadius: '8px',
-          fontWeight: 'bold',
-          fontSize: '1.2rem'
-        }}>
+        <div className={
+          tournament.status === 'Completed' 
+            ? 'modern-badge modern-badge-gray' 
+            : tournament.status === 'In Progress' 
+              ? 'modern-badge modern-badge-success' 
+              : 'modern-badge modern-badge-secondary'
+        } style={{ fontSize: '14px', padding: '8px 16px' }}>
           {tournament.status}
         </div>
       </div>
       
       {/* Tab navigation */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #ddd', marginBottom: '20px' }}>
+      <div className="modern-tabs">
         <div 
-          style={{ 
-            padding: '10px 20px', 
-            cursor: 'pointer',
-            borderBottom: activeTab === 'draw' ? '3px solid var(--primary-color)' : 'none',
-            fontWeight: activeTab === 'draw' ? 'bold' : 'normal'
-          }}
+          className={`modern-tab ${activeTab === 'draw' ? 'active' : ''}`}
           onClick={() => setActiveTab('draw')}
         >
           Tournament Draw
         </div>
         <div 
-          style={{ 
-            padding: '10px 20px', 
-            cursor: 'pointer',
-            borderBottom: activeTab === 'live' ? '3px solid var(--primary-color)' : 'none',
-            fontWeight: activeTab === 'live' ? 'bold' : 'normal',
-            display: 'flex',
-            alignItems: 'center'
-          }}
+          className={`modern-tab ${activeTab === 'live' ? 'active' : ''}`}
           onClick={() => setActiveTab('live')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           Live Matches
           {liveMatchesCount > 0 && (
-            <span style={{ 
-              marginLeft: '5px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              borderRadius: '50%',
-              width: '20px',
-              height: '20px',
+            <span className="modern-badge modern-badge-success" style={{ 
+              width: '20px', 
+              height: '20px', 
+              padding: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.8rem'
+              fontSize: '12px'
             }}>
               {liveMatchesCount}
             </span>
           )}
         </div>
         <div 
-          style={{ 
-            padding: '10px 20px', 
-            cursor: 'pointer',
-            borderBottom: activeTab === 'completed' ? '3px solid var(--primary-color)' : 'none',
-            fontWeight: activeTab === 'completed' ? 'bold' : 'normal',
-            display: 'flex',
-            alignItems: 'center'
-          }}
+          className={`modern-tab ${activeTab === 'completed' ? 'active' : ''}`}
           onClick={() => setActiveTab('completed')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
           Completed Matches
           {completedMatchesCount > 0 && (
-            <span style={{ 
-              marginLeft: '5px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              borderRadius: '50%',
-              width: '20px',
-              height: '20px',
+            <span className="modern-badge modern-badge-gray" style={{ 
+              width: '20px', 
+              height: '20px', 
+              padding: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.8rem'
+              fontSize: '12px'
             }}>
               {completedMatchesCount}
             </span>
