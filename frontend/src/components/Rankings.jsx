@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const Rankings = () => {
+  const navigate = useNavigate()
   const [rankings, setRankings] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -207,7 +209,20 @@ const Rankings = () => {
                       player.rank
                     )}
                   </td>
-                  <td style={{ fontWeight: '600' }}>{player.player_name}</td>
+                  <td style={{ fontWeight: '600' }}>
+                    <span 
+                      style={{ 
+                        cursor: 'pointer', 
+                        color: 'var(--primary-color)',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                      onClick={() => navigate(`/player/${player.player_id}`)}
+                      onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                      onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                    >
+                      {player.player_name}
+                    </span>
+                  </td>
                   <td>{player.country}</td>
                   <td>{player.points.toLocaleString()}</td>
                   <td>

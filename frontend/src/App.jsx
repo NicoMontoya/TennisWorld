@@ -5,6 +5,7 @@ import Welcome from './components/Welcome'
 import Rankings from './components/Rankings'
 import Tournaments from './components/Tournaments'
 import TournamentDetails from './components/TournamentDetails'
+import PlayerProfile from './components/PlayerProfile'
 import Navigation from './components/Navigation'
 
 function App() {
@@ -34,6 +35,10 @@ function App() {
           <Route 
             path="/tournament/:id" 
             element={<TournamentDetails />} 
+          />
+          <Route 
+            path="/player/:id" 
+            element={<PlayerProfile />} 
           />
         </Routes>
       </div>

@@ -79,6 +79,86 @@ export const getPlayerById = async (req, res) => {
   }
 };
 
+// @desc    Get player matches by player ID
+// @route   GET /api/tennis/players/:id/matches
+// @access  Public
+export const getPlayerMatches = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playerId = parseInt(id, 10);
+    
+    // Find matches where the player is either player1 or player2
+    const matches = await Match.find({
+      $or: [
+        { player1_id: playerId },
+        { player2_id: playerId }
+      ]
+    }).sort({ date: -1 }).limit(20).lean(); // Get most recent 20 matches
+    
+    if (!matches || matches.length === 0) {
+      return res.json({
+        status: 'success',
+        data: {
+          matches: []
+        }
+      });
+    }
+    
+    // Get tournament details for these matches
+    const tournamentIds = [...new Set(matches.map(match => match.tournament_id))];
+    const tournaments = await Tournament.find({ tournament_id: { $in: tournamentIds } }).lean();
+    
+    // Create a map of tournament_id to tournament details
+    const tournamentMap = {};
+    tournaments.forEach(tournament => {
+      tournamentMap[tournament.tournament_id] = tournament;
+    });
+    
+    // Get opponent player details
+    const opponentIds = matches.map(match => 
+      match.player1_id === playerId ? match.player2_id : match.player1_id
+    );
+    const opponents = await Player.find({ player_id: { $in: opponentIds } }).lean();
+    
+    // Create a map of player_id to player details
+    const opponentMap = {};
+    opponents.forEach(opponent => {
+      opponentMap[opponent.player_id] = opponent;
+    });
+    
+    // Enhance matches with tournament and opponent details
+    const enhancedMatches = matches.map(match => {
+      const tournament = tournamentMap[match.tournament_id] || {};
+      const isPlayer1 = match.player1_id === playerId;
+      const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
+      const opponent = opponentMap[opponentId] || {};
+      
+      return {
+        ...match,
+        tournament_name: tournament.name || 'Unknown Tournament',
+        tournament_category: tournament.category || 'Unknown',
+        tournament_surface: tournament.surface || 'Unknown',
+        opponent_name: isPlayer1 ? match.player2_name : match.player1_name,
+        opponent_country: opponent.country || 'Unknown',
+        is_winner: match.winner_id === playerId
+      };
+    });
+    
+    res.json({
+      status: 'success',
+      data: {
+        matches: enhancedMatches
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player matches:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching player matches'
+    });
+  }
+};
+
 // @desc    Get all tournaments
 // @route   GET /api/tennis/tournaments
 // @access  Public

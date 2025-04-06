@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getRankings,
   getPlayerById,
+  getPlayerMatches,
   getTournaments,
   getTournamentById,
   getTournamentsByStatus,
@@ -22,6 +23,7 @@ router.get('/rankings/:type', getRankings);
 
 // Player routes
 router.get('/players/:id', getPlayerById);
+router.get('/players/:id/matches', getPlayerMatches);
 
 // Tournament routes
 router.get('/tournaments', getTournaments);
