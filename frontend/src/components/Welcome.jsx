@@ -53,7 +53,10 @@ const Welcome = ({ user }) => {
         textAlign: 'center', 
         marginBottom: '40px',
         position: 'relative',
-        padding: '20px 0'
+        padding: '20px 0',
+        background: 'linear-gradient(135deg, rgba(46, 139, 87, 0.05) 0%, rgba(204, 85, 0, 0.05) 100%)',
+        borderRadius: 'var(--border-radius-lg)',
+        boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.03)'
       }}>
         <div style={{
           position: 'absolute',
@@ -101,10 +104,12 @@ const Welcome = ({ user }) => {
         <div style={{ 
           maxWidth: '600px', 
           margin: '30px auto 0',
-          backgroundColor: 'rgba(46, 139, 87, 0.05)',
-          padding: '20px',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7))',
+          padding: '25px',
           borderRadius: 'var(--border-radius-lg)',
-          border: '1px solid rgba(46, 139, 87, 0.1)'
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(10px)'
         }}>
           <h2 style={{ 
             fontSize: '24px', 
@@ -396,7 +401,9 @@ const Welcome = ({ user }) => {
         marginBottom: '40px',
         color: 'white',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: '0 15px 30px rgba(46, 139, 87, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <div style={{
           position: 'absolute',
@@ -432,7 +439,18 @@ const Welcome = ({ user }) => {
             backgroundColor: 'rgba(255,255,255,0.1)', 
             padding: '20px', 
             borderRadius: 'var(--border-radius-md)',
-            backdropFilter: 'blur(5px)'
+            backdropFilter: 'blur(5px)',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+            e.currentTarget.style.boxShadow = '0 12px 25px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
           }}>
             <div style={{ 
               display: 'flex', 
@@ -456,7 +474,18 @@ const Welcome = ({ user }) => {
             backgroundColor: 'rgba(255,255,255,0.1)', 
             padding: '20px', 
             borderRadius: 'var(--border-radius-md)',
-            backdropFilter: 'blur(5px)'
+            backdropFilter: 'blur(5px)',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+            e.currentTarget.style.boxShadow = '0 12px 25px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
           }}>
             <div style={{ 
               display: 'flex', 
@@ -478,7 +507,18 @@ const Welcome = ({ user }) => {
             backgroundColor: 'rgba(255,255,255,0.1)', 
             padding: '20px', 
             borderRadius: 'var(--border-radius-md)',
-            backdropFilter: 'blur(5px)'
+            backdropFilter: 'blur(5px)',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+            e.currentTarget.style.boxShadow = '0 12px 25px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
           }}>
             <div style={{ 
               display: 'flex', 
@@ -512,7 +552,21 @@ const Welcome = ({ user }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px'
+            gap: '8px',
+            margin: '0 auto',
+            padding: '12px 24px',
+            borderRadius: '30px',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)',
+            border: '2px solid var(--primary-color)'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 8px 15px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.05)';
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

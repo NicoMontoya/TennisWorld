@@ -38,7 +38,8 @@ const Navigation = () => {
         zIndex: 1000,
         transition: 'all 0.3s ease',
         boxShadow: scrolled ? '0 4px 20px rgba(0, 0, 0, 0.15)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
-        padding: scrolled ? '10px 0' : '15px 0'
+        padding: scrolled ? '10px 0' : '15px 0',
+        background: 'linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%)'
       }}
     >
       <div className="modern-nav-container">
@@ -69,7 +70,7 @@ const Navigation = () => {
               fontWeight: 'bold', 
               fontSize: '20px',
               display: 'none',
-              '@media (min-width: 768px)': {
+              '@media(minWidth: 768px)': {
                 display: 'block'
               }
             }}>
@@ -96,7 +97,7 @@ const Navigation = () => {
           className="mobile-menu-button"
           style={{ 
             display: 'block',
-            '@media (min-width: 768px)': {
+            '@media(minWidth: 768px)': {
               display: 'none'
             }
           }}
@@ -135,14 +136,23 @@ const Navigation = () => {
           top: '100%',
           left: 0,
           right: 0,
-          backgroundColor: 'var(--primary-color)',
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+          background: 'linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%)',
+          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           animation: isMenuOpen ? 'fadeIn 0.3s ease forwards' : 'none',
-          zIndex: 1000
+          zIndex: 1000,
+          borderRadius: '0 0 20px 20px',
+          padding: '10px 0'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '8px', 
+          padding: '16px',
+          maxWidth: '90%',
+          margin: '0 auto'
+        }}>
           <MobileNavLink to="/welcome" currentPath={location.pathname} icon="home">
             Home
           </MobileNavLink>
@@ -171,7 +181,12 @@ const NavLink = ({ to, currentPath, children, icon }) => {
         alignItems: 'center',
         gap: '6px',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        padding: '10px 16px',
+        borderRadius: '30px',
+        transition: 'all 0.3s ease',
+        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+        boxShadow: isActive ? '0 0 10px rgba(255, 255, 255, 0.2)' : 'none'
       }}
     >
       {icon === 'home' && (
@@ -230,9 +245,11 @@ const MobileNavLink = ({ to, currentPath, children, onClick, icon }) => {
         color: 'white',
         textDecoration: 'none',
         backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-        borderRadius: '4px',
+        borderRadius: '30px',
         transition: 'all 0.3s ease',
-        fontWeight: isActive ? 'bold' : 'normal'
+        fontWeight: isActive ? 'bold' : 'normal',
+        margin: '4px 0',
+        boxShadow: isActive ? '0 0 10px rgba(255, 255, 255, 0.2)' : 'none'
       }}
       onClick={onClick}
       onMouseOver={(e) => !isActive && (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
