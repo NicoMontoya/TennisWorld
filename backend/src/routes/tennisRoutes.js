@@ -3,11 +3,16 @@ import {
   getRankings,
   getPlayerById,
   getPlayerMatches,
+  getPlayerStats,
+  getPlayerForm,
+  getPlayerInjury,
+  getPlayerRankingHistory,
   getTournaments,
   getTournamentById,
   getTournamentsByStatus,
   getTournamentsByCategory,
-  getTournamentDetailsById
+  getTournamentDetailsById,
+  getTournamentDraw
 } from '../controllers/tennisController.js';
 
 const router = express.Router();
@@ -24,19 +29,24 @@ router.get('/rankings/:type', getRankings);
 // Player routes
 router.get('/players/:id', getPlayerById);
 router.get('/players/:id/matches', getPlayerMatches);
+router.get('/players/:id/stats', getPlayerStats);
+router.get('/players/:id/form', getPlayerForm);
+router.get('/players/:id/injury', getPlayerInjury);
+router.get('/players/:id/ranking-history', getPlayerRankingHistory);
 
 // Tournament routes
 router.get('/tournaments', getTournaments);
 router.get('/tournaments/status/:status', getTournamentsByStatus);
 router.get('/tournaments/category/:category', getTournamentsByCategory);
 
-// Important: The order of these two routes matters
-// The more specific route should come first
+// Important: The order of these routes matters
+// The more specific routes should come first
 router.get('/tournaments/:id/details', (req, res) => {
   console.log(`Route matched for tournament details with id: ${req.params.id}`);
   return getTournamentDetailsById(req, res);
 });
 
+router.get('/tournaments/:id/draw', getTournamentDraw);
 router.get('/tournaments/:id', getTournamentById);
 
 export default router;

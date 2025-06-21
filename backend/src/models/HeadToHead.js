@@ -79,6 +79,33 @@ const headToHeadSchema = new mongoose.Schema({
       player2_wins: { type: Number, default: 0 }
     }
   },
+  set_stats: {
+    player1_sets_won: { type: Number, default: 0 },
+    player2_sets_won: { type: Number, default: 0 },
+    tiebreaks_played: { type: Number, default: 0 },
+    player1_tiebreaks_won: { type: Number, default: 0 },
+    player2_tiebreaks_won: { type: Number, default: 0 }
+  },
+  game_stats: {
+    player1_games_won: { type: Number, default: 0 },
+    player2_games_won: { type: Number, default: 0 },
+    player1_service_games_won_percentage: { type: Number, default: 0 },
+    player2_service_games_won_percentage: { type: Number, default: 0 }
+  },
+  match_history: [{
+    match_id: Number,
+    tournament_id: Number,
+    tournament_name: String,
+    round: String,
+    date: Date,
+    surface: String,
+    winner_id: Number,
+    score: String
+  }],
+  style_matchup_analysis: {
+    type: String,
+    trim: true
+  },
   lastUpdated: {
     type: Date,
     default: Date.now
@@ -117,6 +144,35 @@ headToHeadSchema.pre('save', function(next) {
       this.tournament_category_stats[category].player1_wins = this.tournament_category_stats[category].player2_wins;
       this.tournament_category_stats[category].player2_wins = tempCategoryWins;
     }
+    
+    // Swap set stats
+    const tempSetsWon = this.set_stats.player1_sets_won;
+    this.set_stats.player1_sets_won = this.set_stats.player2_sets_won;
+    this.set_stats.player2_sets_won = tempSetsWon;
+    
+    const tempTiebreaksWon = this.set_stats.player1_tiebreaks_won;
+    this.set_stats.player1_tiebreaks_won = this.set_stats.player2_tiebreaks_won;
+    this.set_stats.player2_tiebreaks_won = tempTiebreaksWon;
+    
+    // Swap game stats
+    const tempGamesWon = this.game_stats.player1_games_won;
+    this.game_stats.player1_games_won = this.game_stats.player2_games_won;
+    this.game_stats.player2_games_won = tempGamesWon;
+    
+    const tempServiceGamesWonPct = this.game_stats.player1_service_games_won_percentage;
+    this.game_stats.player1_service_games_won_percentage = this.game_stats.player2_service_games_won_percentage;
+    this.game_stats.player2_service_games_won_percentage = tempServiceGamesWonPct;
+    
+    // Update match history winner references if needed
+    if (this.match_history && this.match_history.length > 0) {
+      this.match_history.forEach(match => {
+        if (match.winner_id === this.player2_id) {
+          match.winner_id = this.player1_id;
+        } else if (match.winner_id === this.player1_id) {
+          match.winner_id = this.player2_id;
+        }
+      });
+    }
   }
   next();
 });
@@ -135,6 +191,36 @@ headToHeadSchema.virtual('player2', {
   localField: 'player2_id',
   foreignField: 'player_id',
   justOne: true
+});
+
+// Virtual for getting the last match
+headToHeadSchema.virtual('lastMatch', {
+  ref: 'Match',
+  localField: 'last_match_id',
+  foreignField: 'match_id',
+  justOne: true
+});
+
+// Virtual for calculating win percentage for player1
+headToHeadSchema.virtual('player1WinPercentage').get(function() {
+  if (this.matches_count === 0) return 0;
+  return (this.player1_wins / this.matches_count) * 100;
+});
+
+// Virtual for calculating win percentage for player2
+headToHeadSchema.virtual('player2WinPercentage').get(function() {
+  if (this.matches_count === 0) return 0;
+  return (this.player2_wins / this.matches_count) * 100;
+});
+
+// Virtual for determining the dominant player
+headToHeadSchema.virtual('dominantPlayer').get(function() {
+  if (this.player1_wins > this.player2_wins) {
+    return 1;
+  } else if (this.player2_wins > this.player1_wins) {
+    return 2;
+  }
+  return 0; // Tied
 });
 
 const HeadToHead = mongoose.model('HeadToHead', headToHeadSchema);

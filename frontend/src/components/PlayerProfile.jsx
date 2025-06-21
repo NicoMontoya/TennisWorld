@@ -7,9 +7,12 @@ const PlayerProfile = () => {
   const navigate = useNavigate()
   const [player, setPlayer] = useState(null)
   const [recentMatches, setRecentMatches] = useState([])
+  const [playerStats, setPlayerStats] = useState(null)
+  const [playerForm, setPlayerForm] = useState(null)
+  const [playerInjury, setPlayerInjury] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'matches', 'stats'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'matches', 'stats', 'form', 'h2h'
 
   useEffect(() => {
     const fetchPlayerData = async () => {
@@ -25,6 +28,36 @@ const PlayerProfile = () => {
           const matchesResponse = await axios.get(`http://localhost:5001/api/tennis/players/${id}/matches`)
           if (matchesResponse.data && matchesResponse.data.data) {
             setRecentMatches(matchesResponse.data.data.matches || [])
+          }
+          
+          // Fetch player stats
+          try {
+            const statsResponse = await axios.get(`http://localhost:5001/api/tennis/players/${id}/stats`)
+            if (statsResponse.data && statsResponse.data.data) {
+              setPlayerStats(statsResponse.data.data.stats || null)
+            }
+          } catch (statsErr) {
+            console.log('Stats not available yet:', statsErr)
+          }
+          
+          // Fetch player form
+          try {
+            const formResponse = await axios.get(`http://localhost:5001/api/tennis/players/${id}/form`)
+            if (formResponse.data && formResponse.data.data) {
+              setPlayerForm(formResponse.data.data.form || null)
+            }
+          } catch (formErr) {
+            console.log('Form data not available yet:', formErr)
+          }
+          
+          // Fetch player injury
+          try {
+            const injuryResponse = await axios.get(`http://localhost:5001/api/tennis/players/${id}/injury`)
+            if (injuryResponse.data && injuryResponse.data.data) {
+              setPlayerInjury(injuryResponse.data.data.injury || null)
+            }
+          } catch (injuryErr) {
+            console.log('Injury data not available yet:', injuryErr)
           }
           
           setError(null)
@@ -71,285 +104,6 @@ const PlayerProfile = () => {
     }
   }
 
-  // Render match result
-  const renderMatchResult = (match) => {
-    const isWinner = match.winner_id === parseInt(id) || match.winner_name === player?.name
-    
-    return (
-      <div 
-        key={match.match_id} 
-        className="glass-card"
-        style={{
-          padding: '20px',
-          marginBottom: '15px',
-          borderRadius: 'var(--border-radius-md)',
-          borderLeft: isWinner ? '4px solid var(--success-color)' : '4px solid var(--error-color)'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{ fontWeight: 'bold' }}>{match.tournament_name}</span>
-          <span>{new Date(match.date).toLocaleDateString()}</span>
-        </div>
-        
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '10px 0'
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            width: '40%'
-          }}>
-            <span style={{ 
-              fontWeight: match.player1_id === parseInt(id) ? 'bold' : 'normal',
-              color: match.player1_id === parseInt(id) ? 'var(--primary-color)' : 'inherit'
-            }}>
-              {match.player1_name}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-light)' }}>
-              {match.player1_country}
-            </span>
-          </div>
-          
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '20%'
-          }}>
-            <span style={{ fontWeight: 'bold' }}>VS</span>
-            <span style={{ 
-              fontSize: '12px', 
-              color: isWinner ? 'var(--success-color)' : 'var(--error-color)',
-              fontWeight: 'bold',
-              marginTop: '5px'
-            }}>
-              {isWinner ? 'WIN' : 'LOSS'}
-            </span>
-          </div>
-          
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            width: '40%'
-          }}>
-            <span style={{ 
-              fontWeight: match.player2_id === parseInt(id) ? 'bold' : 'normal',
-              color: match.player2_id === parseInt(id) ? 'var(--primary-color)' : 'inherit'
-            }}>
-              {match.player2_name}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-light)' }}>
-              {match.player2_country}
-            </span>
-          </div>
-        </div>
-        
-        <div style={{ 
-          backgroundColor: 'rgba(0,0,0,0.03)', 
-          padding: '10px', 
-          borderRadius: 'var(--border-radius-sm)',
-          marginTop: '10px',
-          fontSize: '14px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Score:</span>
-            <span>{match.score || 'N/A'}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-            <span>Round:</span>
-            <span>{match.round || 'N/A'}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-            <span>Surface:</span>
-            <span>{match.surface || 'N/A'}</span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Render player statistics
-  const renderPlayerStats = () => {
-    if (!player || !recentMatches || recentMatches.length === 0) {
-      return (
-        <div style={{ textAlign: 'center', padding: '30px' }}>
-          <p>No statistics available for this player.</p>
-        </div>
-      )
-    }
-    
-    const winPercentage = calculateWinPercentage()
-    const surfaceStats = calculateSurfaceStats()
-    
-    return (
-      <div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-around', 
-          marginBottom: '40px',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}>
-          {/* Win Rate */}
-          <div className="neumorphic" style={{ 
-            padding: '20px', 
-            textAlign: 'center',
-            minWidth: '200px',
-            flex: '1'
-          }}>
-            <h3 style={{ marginBottom: '15px', color: 'var(--primary-color)' }}>Win Rate</h3>
-            <div style={{ 
-              position: 'relative', 
-              width: '120px', 
-              height: '120px', 
-              margin: '0 auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <svg width="120" height="120" viewBox="0 0 120 120">
-                <circle 
-                  cx="60" 
-                  cy="60" 
-                  r="54" 
-                  fill="none" 
-                  stroke="#e6e6e6" 
-                  strokeWidth="12" 
-                />
-                <circle 
-                  cx="60" 
-                  cy="60" 
-                  r="54" 
-                  fill="none" 
-                  stroke="var(--primary-color)" 
-                  strokeWidth="12" 
-                  strokeDasharray={`${2 * Math.PI * 54 * winPercentage / 100} ${2 * Math.PI * 54 * (100 - winPercentage) / 100}`}
-                  strokeDashoffset={2 * Math.PI * 54 * 0.25}
-                  transform="rotate(-90 60 60)"
-                />
-              </svg>
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)',
-                fontSize: '24px',
-                fontWeight: 'bold'
-              }}>
-                {winPercentage}%
-              </div>
-            </div>
-            <p style={{ marginTop: '15px', fontSize: '14px', color: 'var(--text-light)' }}>
-              Based on last {recentMatches.length} matches
-            </p>
-          </div>
-          
-          {/* Matches Played */}
-          <div className="neumorphic" style={{ 
-            padding: '20px', 
-            textAlign: 'center',
-            minWidth: '200px',
-            flex: '1'
-          }}>
-            <h3 style={{ marginBottom: '15px', color: 'var(--primary-color)' }}>Matches</h3>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-around',
-              marginTop: '20px'
-            }}>
-              <div>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--success-color)' }}>
-                  {recentMatches.filter(match => 
-                    match.winner_id === parseInt(id) || match.winner_name === player?.name
-                  ).length}
-                </div>
-                <div style={{ fontSize: '14px', color: 'var(--text-light)' }}>Wins</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--error-color)' }}>
-                  {recentMatches.filter(match => 
-                    match.winner_id !== parseInt(id) && match.winner_name !== player?.name
-                  ).length}
-                </div>
-                <div style={{ fontSize: '14px', color: 'var(--text-light)' }}>Losses</div>
-              </div>
-            </div>
-            <p style={{ marginTop: '15px', fontSize: '14px', color: 'var(--text-light)' }}>
-              Total: {recentMatches.length} matches
-            </p>
-          </div>
-        </div>
-        
-        {/* Surface Performance */}
-        <h3 style={{ 
-          color: 'var(--primary-color)', 
-          borderBottom: '2px solid var(--secondary-color)',
-          paddingBottom: '10px',
-          marginBottom: '20px',
-          marginTop: '30px'
-        }}>
-          Performance by Surface
-        </h3>
-        
-        <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap',
-          gap: '15px',
-          justifyContent: 'space-between'
-        }}>
-          {Object.entries(surfaceStats).map(([surface, stats]) => (
-            <div 
-              key={surface}
-              className="glass-card"
-              style={{
-                padding: '15px',
-                flex: '1 0 200px',
-                minWidth: '200px'
-              }}
-            >
-              <h4 style={{ marginBottom: '10px' }}>{surface}</h4>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                marginBottom: '10px'
-              }}>
-                <div style={{ 
-                  width: '100%', 
-                  height: '8px', 
-                  backgroundColor: '#e6e6e6',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ 
-                    width: `${stats.winPercentage}%`, 
-                    height: '100%', 
-                    backgroundColor: 'var(--primary-color)',
-                    borderRadius: '4px'
-                  }}></div>
-                </div>
-                <span style={{ 
-                  marginLeft: '10px', 
-                  fontWeight: 'bold',
-                  minWidth: '40px'
-                }}>
-                  {stats.winPercentage}%
-                </span>
-              </div>
-              <div style={{ fontSize: '14px', color: 'var(--text-light)' }}>
-                {stats.wins} wins, {stats.losses} losses
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   // Calculate surface statistics
   const calculateSurfaceStats = () => {
     if (!recentMatches || recentMatches.length === 0) return {}
@@ -382,13 +136,287 @@ const PlayerProfile = () => {
     return stats
   }
 
+  // Render player overview
+  const renderOverview = () => {
+    if (!player) return null
+    
+    const playerData = formatPlayerData()
+    
+    return (
+      <div>
+        <div className="glass-card">
+          <h3>Player Information</h3>
+          <div>
+            <div>Age: {playerData.age}</div>
+            <div>Height: {playerData.height}</div>
+            <div>Weight: {playerData.weight}</div>
+            <div>Plays: {playerData.plays}</div>
+            <div>Turned Pro: {playerData.turnedPro}</div>
+          </div>
+        </div>
+        
+        {playerInjury && (
+          <div className="glass-card">
+            <h3>Injury Status</h3>
+            <div>
+              <div>Status: {playerInjury.status}</div>
+              <div>Type: {playerInjury.injury_type}</div>
+              <div>Body Part: {playerInjury.body_part}</div>
+              <div>Expected Return: {playerInjury.expected_return_date ? new Date(playerInjury.expected_return_date).toLocaleDateString() : 'Unknown'}</div>
+            </div>
+          </div>
+        )}
+        
+        <h3>Recent Form</h3>
+        {recentMatches && recentMatches.length > 0 ? (
+          <div className="form-indicators">
+            {recentMatches.slice(0, 10).map((match, index) => {
+              const isWinner = match.winner_id === parseInt(id) || match.winner_name === player?.name
+              return (
+                <div 
+                  key={index}
+                  className={isWinner ? 'win-indicator' : 'loss-indicator'}
+                  title={`${match.tournament_name}: ${isWinner ? 'Win' : 'Loss'} against ${
+                    match.player1_id === parseInt(id) ? match.player2_name : match.player1_name
+                  }`}
+                >
+                  {isWinner ? 'W' : 'L'}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p>No recent matches available.</p>
+        )}
+      </div>
+    )
+  }
+
+  // Render match result
+  const renderMatchResult = (match) => {
+    const isWinner = match.winner_id === parseInt(id) || match.winner_name === player?.name
+    
+    return (
+      <div key={match.match_id} className="glass-card">
+        <div>
+          <span>{match.tournament_name}</span>
+          <span>{new Date(match.date).toLocaleDateString()}</span>
+        </div>
+        
+        <div>
+          <div>
+            <span>{match.player1_name}</span>
+            <span>{match.player1_country}</span>
+          </div>
+          
+          <div>
+            <span>VS</span>
+            <span>{isWinner ? 'WIN' : 'LOSS'}</span>
+          </div>
+          
+          <div>
+            <span>{match.player2_name}</span>
+            <span>{match.player2_country}</span>
+          </div>
+        </div>
+        
+        <div>
+          <div>Score: {match.score || 'N/A'}</div>
+          <div>Round: {match.round || 'N/A'}</div>
+          <div>Surface: {match.surface || 'N/A'}</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render matches tab
+  const renderMatches = () => {
+    return (
+      <div>
+        <h3>Recent Matches</h3>
+        {recentMatches && recentMatches.length > 0 ? (
+          recentMatches.map(match => renderMatchResult(match))
+        ) : (
+          <div>
+            <p>No match history available for this player.</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Render player statistics
+  const renderPlayerStats = () => {
+    if (!player || !recentMatches || recentMatches.length === 0) {
+      return (
+        <div>
+          <p>No statistics available for this player.</p>
+        </div>
+      )
+    }
+    
+    const winPercentage = calculateWinPercentage()
+    const surfaceStats = calculateSurfaceStats()
+    
+    return (
+      <div>
+        <div className="stats-cards">
+          <div className="neumorphic">
+            <h3>Win Rate</h3>
+            <div>{winPercentage}%</div>
+            <p>Based on last {recentMatches.length} matches</p>
+          </div>
+          
+          <div className="neumorphic">
+            <h3>Matches</h3>
+            <div>
+              <div>
+                <div>{recentMatches.filter(match => 
+                  match.winner_id === parseInt(id) || match.winner_name === player?.name
+                ).length}</div>
+                <div>Wins</div>
+              </div>
+              <div>
+                <div>{recentMatches.filter(match => 
+                  match.winner_id !== parseInt(id) && match.winner_name !== player?.name
+                ).length}</div>
+                <div>Losses</div>
+              </div>
+            </div>
+            <p>Total: {recentMatches.length} matches</p>
+          </div>
+        </div>
+        
+        <h3>Performance by Surface</h3>
+        <div className="surface-stats">
+          {Object.entries(surfaceStats).map(([surface, stats]) => (
+            <div key={surface} className="glass-card">
+              <h4>{surface}</h4>
+              <div>
+                <div style={{ width: `${stats.winPercentage}%` }}></div>
+                <span>{stats.winPercentage}%</span>
+              </div>
+              <div>{stats.wins} wins, {stats.losses} losses</div>
+            </div>
+          ))}
+        </div>
+        
+        {playerStats && (
+          <>
+            <h3>Advanced Statistics</h3>
+            <div className="advanced-stats">
+              <div className="glass-card">
+                <h4>Serve Statistics</h4>
+                <div>
+                  <div>Aces per Match: {playerStats.serve_stats?.aces_per_match || 'N/A'}</div>
+                  <div>First Serve %: {playerStats.serve_stats?.first_serve_percentage || 'N/A'}%</div>
+                  <div>Service Games Won %: {playerStats.serve_stats?.service_games_won_percentage || 'N/A'}%</div>
+                </div>
+              </div>
+              
+              <div className="glass-card">
+                <h4>Return Statistics</h4>
+                <div>
+                  <div>Break Points Converted %: {playerStats.return_stats?.break_points_converted_percentage || 'N/A'}%</div>
+                  <div>Return Games Won %: {playerStats.return_stats?.return_games_won_percentage || 'N/A'}%</div>
+                </div>
+              </div>
+              
+              <div className="glass-card">
+                <h4>Overall Performance</h4>
+                <div>
+                  <div>Win Percentage: {playerStats.overall_stats?.win_percentage || 'N/A'}%</div>
+                  <div>Matches Played: {playerStats.matches_played || 'N/A'}</div>
+                  <div>Matches Won: {playerStats.matches_won || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Render player form
+  const renderPlayerForm = () => {
+    if (!playerForm) {
+      return (
+        <div>
+          <p>No form data available for this player.</p>
+        </div>
+      )
+    }
+    
+    return (
+      <div>
+        <div className="form-cards">
+          <div className="neumorphic">
+            <h3>Current Form</h3>
+            <div>{playerForm.form_rating}</div>
+            <p>Form Rating (1-10)</p>
+          </div>
+          
+          <div className="neumorphic">
+            <h3>Current Streak</h3>
+            <div>{playerForm.current_streak?.count || 0}</div>
+            <p>{playerForm.current_streak?.type || 'No'} Streak</p>
+          </div>
+          
+          <div className="neumorphic">
+            <h3>Recent Performance</h3>
+            <div>
+              <div>
+                <div>{playerForm.recent_performance?.wins || 0}</div>
+                <div>Wins</div>
+              </div>
+              <div>
+                <div>{playerForm.recent_performance?.losses || 0}</div>
+                <div>Losses</div>
+              </div>
+            </div>
+            <p>Win Rate: {playerForm.recent_performance?.win_percentage?.toFixed(1) || 0}%</p>
+          </div>
+        </div>
+        
+        <h3>Last 10 Matches</h3>
+        {playerForm.last_10_matches && playerForm.last_10_matches.length > 0 ? (
+          <div className="form-indicators">
+            {playerForm.last_10_matches.map((match, index) => (
+              <div 
+                key={index}
+                className={match.result === 'Win' ? 'win-indicator' : 'loss-indicator'}
+                title={`${match.tournament_name}: ${match.result} against ${match.opponent_name}`}
+              >
+                {match.result === 'Win' ? 'W' : 'L'}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p>No recent match data available.</p>
+        )}
+        
+        <h3>Surface Form</h3>
+        <div className="surface-stats">
+          {playerForm.surface_form && Object.entries(playerForm.surface_form).map(([surface, stats]) => (
+            <div key={surface} className="glass-card">
+              <h4>{surface}</h4>
+              <div>
+                <div style={{ width: `${stats.win_percentage}%` }}></div>
+                <span>{stats.win_percentage}%</span>
+              </div>
+              <div>{stats.wins} wins, {stats.losses} losses</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="modern-card text-center">
-        <div className="modern-flex modern-flex-center" style={{ padding: '60px 0' }}>
-          <div className="modern-spinner"></div>
-        </div>
-        <h2 style={{ fontSize: '20px', color: 'var(--text-light)' }}>Loading player profile...</h2>
+        <div className="modern-spinner"></div>
+        <h2>Loading player profile...</h2>
       </div>
     )
   }
@@ -396,25 +424,7 @@ const PlayerProfile = () => {
   if (error) {
     return (
       <div className="modern-card text-center">
-        <div style={{ 
-          backgroundColor: 'rgba(229, 57, 53, 0.1)', 
-          border: '1px solid rgba(229, 57, 53, 0.3)', 
-          color: 'var(--error-color)', 
-          padding: '16px', 
-          borderRadius: 'var(--border-radius-md)', 
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px'
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>{error}</span>
-        </div>
+        <div className="error-message">{error}</div>
         <button 
           className="btn"
           onClick={() => navigate('/rankings')}
@@ -428,7 +438,7 @@ const PlayerProfile = () => {
   if (!player) {
     return (
       <div className="modern-card text-center">
-        <h2 style={{ fontSize: '20px', color: 'var(--text-light)', marginBottom: '24px' }}>Player not found</h2>
+        <h2>Player not found</h2>
         <button 
           className="btn"
           onClick={() => navigate('/rankings')}
@@ -443,83 +453,26 @@ const PlayerProfile = () => {
 
   return (
     <div className="modern-card fade-in">
-      <div style={{ marginBottom: '24px' }}>
+      <div>
         <button 
           className="btn-outline btn-sm"
           onClick={() => navigate('/rankings')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5"></path>
-            <path d="M12 19l-7-7 7-7"></path>
-          </svg>
           Back to Rankings
         </button>
       </div>
       
       {/* Player Header */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        marginBottom: '40px',
-        flexWrap: 'wrap',
-        gap: '30px'
-      }}>
-        {/* Player Avatar */}
-        <div style={{ 
-          width: '120px', 
-          height: '120px', 
-          borderRadius: '50%', 
-          backgroundColor: 'var(--primary-light)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '48px',
-          fontWeight: 'bold',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
-        }}>
-          {playerData.name.charAt(0)}
-        </div>
+      <div className="player-header">
+        <div className="player-avatar">{playerData.name.charAt(0)}</div>
         
-        {/* Player Info */}
-        <div style={{ flex: '1' }}>
-          <h1 style={{ 
-            color: 'var(--primary-color)', 
-            fontSize: '32px', 
-            fontWeight: 'bold', 
-            marginBottom: '10px'
-          }}>
-            {playerData.name}
-          </h1>
+        <div className="player-info">
+          <h1>{playerData.name}</h1>
           
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            marginBottom: '15px',
-            flexWrap: 'wrap',
-            gap: '15px'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '5px',
-              color: 'var(--text-light)'
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              {playerData.country}
-            </div>
-            
-            <div className="modern-badge modern-badge-primary">
-              Rank: {playerData.ranking}
-            </div>
-            
-            <div className="modern-badge modern-badge-secondary">
-              Points: {playerData.points}
-            </div>
+          <div className="player-meta">
+            <div>{playerData.country}</div>
+            <div className="modern-badge">Rank: {playerData.ranking}</div>
+            <div className="modern-badge">Points: {playerData.points}</div>
           </div>
         </div>
       </div>
@@ -544,143 +497,20 @@ const PlayerProfile = () => {
         >
           Statistics
         </div>
+        <div 
+          className={`modern-tab ${activeTab === 'form' ? 'active' : ''}`}
+          onClick={() => setActiveTab('form')}
+        >
+          Form
+        </div>
       </div>
       
       {/* Tab Content */}
-      <div style={{ marginTop: '30px' }}>
-        {activeTab === 'overview' && (
-          <div>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '20px',
-              marginBottom: '30px'
-            }}>
-              <div className="glass-card" style={{ padding: '15px' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '14px', marginBottom: '5px' }}>Age</div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{playerData.age}</div>
-              </div>
-              
-              <div className="glass-card" style={{ padding: '15px' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '14px', marginBottom: '5px' }}>Height</div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{playerData.height}</div>
-              </div>
-              
-              <div className="glass-card" style={{ padding: '15px' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '14px', marginBottom: '5px' }}>Weight</div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{playerData.weight}</div>
-              </div>
-              
-              <div className="glass-card" style={{ padding: '15px' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '14px', marginBottom: '5px' }}>Plays</div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{playerData.plays}</div>
-              </div>
-              
-              <div className="glass-card" style={{ padding: '15px' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '14px', marginBottom: '5px' }}>Turned Pro</div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px' }}>{playerData.turnedPro}</div>
-              </div>
-            </div>
-            
-            <h3 style={{ 
-              color: 'var(--primary-color)', 
-              borderBottom: '2px solid var(--secondary-color)',
-              paddingBottom: '10px',
-              marginBottom: '20px',
-              marginTop: '30px'
-            }}>
-              Career Highlights
-            </h3>
-            
-            {player.career_titles && player.career_titles.length > 0 ? (
-              <div>
-                <h4 style={{ marginBottom: '15px' }}>Tournament Titles</h4>
-                <ul style={{ paddingLeft: '20px', marginBottom: '20px' }}>
-                  {player.career_titles.map((title, index) => (
-                    <li key={index} style={{ marginBottom: '10px' }}>
-                      {title}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p>No career highlights available for this player.</p>
-            )}
-            
-            {/* Recent Form */}
-            <h3 style={{ 
-              color: 'var(--primary-color)', 
-              borderBottom: '2px solid var(--secondary-color)',
-              paddingBottom: '10px',
-              marginBottom: '20px',
-              marginTop: '30px'
-            }}>
-              Recent Form
-            </h3>
-            
-            {recentMatches && recentMatches.length > 0 ? (
-              <div style={{ 
-                display: 'flex', 
-                gap: '10px',
-                marginBottom: '20px',
-                overflowX: 'auto',
-                padding: '10px 0'
-              }}>
-                {recentMatches.slice(0, 10).map((match, index) => {
-                  const isWinner = match.winner_id === parseInt(id) || match.winner_name === player?.name
-                  
-                  return (
-                    <div 
-                      key={index}
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: isWinner ? 'var(--success-color)' : 'var(--error-color)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        flexShrink: 0
-                      }}
-                      title={`${match.tournament_name}: ${isWinner ? 'Win' : 'Loss'} against ${
-                        match.player1_id === parseInt(id) ? match.player2_name : match.player1_name
-                      }`}
-                    >
-                      {isWinner ? 'W' : 'L'}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p>No recent matches available.</p>
-            )}
-          </div>
-        )}
-        
-        {activeTab === 'matches' && (
-          <div>
-            <h3 style={{ 
-              color: 'var(--primary-color)', 
-              borderBottom: '2px solid var(--secondary-color)',
-              paddingBottom: '10px',
-              marginBottom: '20px'
-            }}>
-              Recent Matches
-            </h3>
-            
-            {recentMatches && recentMatches.length > 0 ? (
-              recentMatches.map(match => renderMatchResult(match))
-            ) : (
-              <div style={{ textAlign: 'center', padding: '30px' }}>
-                <p>No match history available for this player.</p>
-              </div>
-            )}
-          </div>
-        )}
-        
+      <div className="tab-content">
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'matches' && renderMatches()}
         {activeTab === 'stats' && renderPlayerStats()}
+        {activeTab === 'form' && renderPlayerForm()}
       </div>
     </div>
   )

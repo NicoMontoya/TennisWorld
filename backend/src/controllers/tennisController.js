@@ -1,6 +1,11 @@
 import Player from '../models/Player.js';
 import Tournament from '../models/Tournament.js';
 import Match from '../models/Match.js';
+import PlayerStats from '../models/PlayerStats.js';
+import PlayerForm from '../models/PlayerForm.js';
+import PlayerInjury from '../models/PlayerInjury.js';
+import PlayerRankingHistory from '../models/PlayerRankingHistory.js';
+import TournamentDraw from '../models/TournamentDraw.js';
 import { getTournamentDetails, getRankings as fetchRankings, getTournaments as fetchTournaments } from '../services/tennisApiService.js';
 
 // @desc    Get player rankings by type (ATP or WTA)
@@ -159,6 +164,163 @@ export const getPlayerMatches = async (req, res) => {
   }
 };
 
+// @desc    Get player statistics by player ID
+// @route   GET /api/tennis/players/:id/stats
+// @access  Public
+export const getPlayerStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playerId = parseInt(id, 10);
+    
+    // Get current year
+    const currentYear = new Date().getFullYear();
+    
+    // Find player stats for the current year and all surfaces
+    const stats = await PlayerStats.findOne({
+      player_id: playerId,
+      year: currentYear,
+      surface: 'All',
+      tournament_level: 'All'
+    }).lean();
+    
+    if (!stats) {
+      return res.status(404).json({
+        status: 'success',
+        data: {
+          stats: null
+        }
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      data: {
+        stats
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player stats:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching player statistics'
+    });
+  }
+};
+
+// @desc    Get player form by player ID
+// @route   GET /api/tennis/players/:id/form
+// @access  Public
+export const getPlayerForm = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playerId = parseInt(id, 10);
+    
+    // Find player form
+    const form = await PlayerForm.findOne({ player_id: playerId }).lean();
+    
+    if (!form) {
+      return res.status(404).json({
+        status: 'success',
+        data: {
+          form: null
+        }
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      data: {
+        form
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player form:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching player form'
+    });
+  }
+};
+
+// @desc    Get player injury by player ID
+// @route   GET /api/tennis/players/:id/injury
+// @access  Public
+export const getPlayerInjury = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playerId = parseInt(id, 10);
+    
+    // Find active injuries for the player
+    const injury = await PlayerInjury.findOne({
+      player_id: playerId,
+      status: { $in: ['Active', 'Recovering'] }
+    }).lean();
+    
+    // If no active injury, return null
+    if (!injury) {
+      return res.json({
+        status: 'success',
+        data: {
+          injury: null
+        }
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      data: {
+        injury
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player injury:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching player injury'
+    });
+  }
+};
+
+// @desc    Get player ranking history by player ID
+// @route   GET /api/tennis/players/:id/ranking-history
+// @access  Public
+export const getPlayerRankingHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const playerId = parseInt(id, 10);
+    
+    // Find player ranking history for the last year
+    const history = await PlayerRankingHistory.find({
+      player_id: playerId
+    })
+    .sort({ ranking_date: -1 })
+    .limit(52) // Last 52 weeks
+    .lean();
+    
+    if (!history || history.length === 0) {
+      return res.json({
+        status: 'success',
+        data: {
+          history: []
+        }
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      data: {
+        history
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching player ranking history:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching player ranking history'
+    });
+  }
+};
+
 // @desc    Get all tournaments
 // @route   GET /api/tennis/tournaments
 // @access  Public
@@ -283,7 +445,6 @@ export const getTournamentsByCategory = async (req, res) => {
   }
 };
 
-
 // @desc    Get tournament details including fixtures and live scores
 // @route   GET /api/tennis/tournaments/:id/details
 // @access  Public
@@ -335,13 +496,22 @@ export const getTournamentDetailsById = async (req, res) => {
       winner: match.winner_id ? playerMap[match.winner_id] : null
     }));
     
+    // Try to get tournament draw if available
+    let draw = null;
+    try {
+      draw = await TournamentDraw.findOne({ tournament_id: tournamentId }).lean();
+    } catch (drawError) {
+      console.log('Tournament draw not available:', drawError);
+    }
+    
     console.log(`Successfully fetched tournament details for id: ${id}`);
     res.json({
       status: 'success',
       data: {
         tournament,
         matches: enhancedMatches,
-        matchesByRound
+        matchesByRound,
+        draw
       }
     });
   } catch (error) {
@@ -349,6 +519,41 @@ export const getTournamentDetailsById = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournament details'
+    });
+  }
+};
+
+// @desc    Get tournament draw by tournament ID
+// @route   GET /api/tennis/tournaments/:id/draw
+// @access  Public
+export const getTournamentDraw = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tournamentId = parseInt(id, 10);
+    
+    // Find tournament draw
+    const draw = await TournamentDraw.findOne({ tournament_id: tournamentId }).lean();
+    
+    if (!draw) {
+      return res.status(404).json({
+        status: 'success',
+        data: {
+          draw: null
+        }
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      data: {
+        draw
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching tournament draw:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching tournament draw'
     });
   }
 };
