@@ -1,10 +1,14 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 const Navigation = () => {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { isLoggedIn, user, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   
   // Handle scroll effect for navigation
   useEffect(() => {
@@ -23,6 +27,13 @@ const Navigation = () => {
       window.removeEventListener('scroll', handleScroll)
     }
   }, [])
+  
+  // Handle logout
+  const handleLogout = () => {
+    logout()
+    setUserMenuOpen(false)
+    navigate('/')
+  }
   
   // Close mobile menu when location changes
   useEffect(() => {
@@ -90,6 +101,152 @@ const Navigation = () => {
           <NavLink to="/tournaments" currentPath={location.pathname} icon="calendar">
             Tournaments
           </NavLink>
+          
+          {/* User menu */}
+          {isLoggedIn ? (
+            <div style={{ position: 'relative' }}>
+              <button 
+                style={{ 
+                  color: 'white', 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer',
+                  padding: '10px 16px',
+                  borderRadius: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: userMenuOpen ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                }}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                onMouseOut={(e) => !userMenuOpen && (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                My Account
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              
+              {/* User dropdown menu */}
+              {userMenuOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: '0',
+                  backgroundColor: 'white',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  borderRadius: '8px',
+                  padding: '8px 0',
+                  minWidth: '200px',
+                  zIndex: 1001,
+                  animation: 'fadeIn 0.2s ease forwards'
+                }}>
+                  <Link 
+                    to="/profile" 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 16px',
+                      color: 'var(--text-dark)',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onClick={() => setUserMenuOpen(false)}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    My Profile
+                  </Link>
+                  
+                  <Link 
+                    to="/profile?tab=brackets" 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 16px',
+                      color: 'var(--text-dark)',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onClick={() => setUserMenuOpen(false)}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    My Brackets
+                  </Link>
+                  
+                  <div style={{ height: '1px', backgroundColor: '#eee', margin: '8px 0' }}></div>
+                  
+                  <button 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 16px',
+                      color: 'var(--error-color)',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onClick={handleLogout}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                      <polyline points="16 17 21 12 16 7"></polyline>
+                      <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link 
+              to="/" 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 16px',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '30px',
+                transition: 'all 0.3s ease',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 0 10px rgba(255, 255, 255, 0.1)'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+              </svg>
+              Login
+            </Link>
+          )}
         </div>
         
         {/* Mobile menu button */}
@@ -162,6 +319,52 @@ const Navigation = () => {
           <MobileNavLink to="/tournaments" currentPath={location.pathname} icon="calendar">
             Tournaments
           </MobileNavLink>
+          
+          {/* User links for mobile */}
+          {isLoggedIn ? (
+            <>
+              <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }}></div>
+              
+              <MobileNavLink to="/profile" currentPath={location.pathname} icon="user">
+                My Profile
+              </MobileNavLink>
+              
+              <MobileNavLink to="/profile?tab=brackets" currentPath={location.pathname} icon="brackets">
+                My Brackets
+              </MobileNavLink>
+              
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  color: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '30px',
+                  transition: 'all 0.3s ease',
+                  margin: '4px 0',
+                  cursor: 'pointer'
+                }}
+                onClick={handleLogout}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Logout
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.1)', margin: '8px 0' }}></div>
+              
+              <MobileNavLink to="/" currentPath={location.pathname} icon="login">
+                Login / Register
+              </MobileNavLink>
+            </>
+          )}
         </div>
       </div>
     </nav>

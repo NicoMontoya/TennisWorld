@@ -1,9 +1,11 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
-const Welcome = ({ user }) => {
+const Welcome = () => {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [featuredTournament, setFeaturedTournament] = useState(null)
   const [topPlayers, setTopPlayers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -39,11 +41,8 @@ const Welcome = ({ user }) => {
   }, [])
 
   const handleLogout = () => {
-    // In a real app, we would call a logout API
-    // For now, we'll just redirect to the register page
+    logout()
     navigate('/')
-    // Force a page reload to clear the user state
-    window.location.reload()
   }
 
   return (

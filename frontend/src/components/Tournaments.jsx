@@ -233,7 +233,7 @@ const Tournaments = () => {
                         position: 'relative',
                         overflow: 'hidden'
                       }}
-                      onClick={() => navigate(`/tournament/${tournament.tournament_id}`)}
+                      onClick={() => navigate(`/tournaments/${tournament.tournament_id}`)}
                       onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'translateY(-8px)';
                         e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.15)';

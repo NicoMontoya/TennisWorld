@@ -145,28 +145,39 @@ userSchema.virtual('predictions', {
 });
 
 // Pre-save middleware to hash password
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  
-  try {
-    // Generate salt
-    const salt = await bcrypt.genSalt(10);
-    
-    // Hash password
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+// Commenting out for now to debug login issues
+// userSchema.pre('save', async function(next) {
+//   if (!this.isModified('password')) {
+//     return next();
+//   }
+//   
+//   try {
+//     // Generate salt
+//     const salt = await bcrypt.genSalt(10);
+//     
+//     // Hash password
+//     this.password = await bcrypt.hash(this.password, salt);
+//     console.log('Password hashed in pre-save middleware:', this.password);
+//     next();
+//   } catch (error) {
+//     console.error('Error hashing password in pre-save middleware:', error);
+//     next(error);
+//   }
+// });
 
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   try {
-    return await bcrypt.compare(candidatePassword, this.password);
+    console.log('Comparing passwords in comparePassword method:');
+    console.log('Candidate password:', candidatePassword);
+    console.log('Stored password:', this.password);
+    
+    const isMatch = await bcrypt.compare(candidatePassword, this.password);
+    console.log('Password match result:', isMatch);
+    
+    return isMatch;
   } catch (error) {
+    console.error('Error comparing passwords in comparePassword method:', error);
     throw error;
   }
 };
