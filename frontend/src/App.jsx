@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Register from './components/Register'
 import Login from './components/Login'
 import Welcome from './components/Welcome'
+import Dashboard from './components/Dashboard'
 import Rankings from './components/Rankings'
 import Tournaments from './components/Tournaments'
 import TournamentDetails from './components/TournamentDetails'
@@ -12,7 +13,8 @@ import BracketViewer from './components/BracketViewer'
 import Navigation from './components/Navigation'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-function App() {
+// Main App component that uses auth context
+function AppContent() {
   const { user, isLoggedIn, loading } = useAuth()
   
   if (loading) {
@@ -38,15 +40,19 @@ function App() {
         <Routes>
           <Route 
             path="/" 
-            element={user ? <Navigate to="/welcome" /> : <Login />} 
+            element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
           />
           <Route 
             path="/register" 
-            element={user ? <Navigate to="/welcome" /> : <Register />} 
+            element={user ? <Navigate to="/dashboard" replace /> : <Register />} 
+          />
+          <Route 
+            path="/dashboard" 
+            element={user ? <Dashboard /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/welcome" 
-            element={user ? <Welcome /> : <Navigate to="/" />} 
+            element={user ? <Welcome /> : <Navigate to="/" replace />} 
           />
           <Route 
             path="/rankings" 
@@ -62,7 +68,7 @@ function App() {
           />
           <Route 
             path="/tournaments/:tournamentId/build" 
-            element={isLoggedIn ? <BracketBuilder /> : <Navigate to="/" state={{ from: window.location.pathname }} />} 
+            element={isLoggedIn ? <BracketBuilder /> : <Navigate to="/" replace state={{ from: window.location.pathname }} />} 
           />
           <Route 
             path="/players/:id" 
@@ -70,15 +76,15 @@ function App() {
           />
           <Route 
             path="/profile" 
-            element={isLoggedIn ? <UserProfile /> : <Navigate to="/" state={{ from: window.location.pathname }} />} 
+            element={isLoggedIn ? <UserProfile /> : <Navigate to="/" replace state={{ from: window.location.pathname }} />} 
           />
           <Route 
             path="/profile/edit" 
-            element={isLoggedIn ? <UserProfile /> : <Navigate to="/" state={{ from: window.location.pathname }} />} 
+            element={isLoggedIn ? <UserProfile /> : <Navigate to="/" replace state={{ from: window.location.pathname }} />} 
           />
           <Route 
             path="/brackets/:id" 
-            element={isLoggedIn ? <BracketViewer /> : <Navigate to="/" state={{ from: window.location.pathname }} />} 
+            element={isLoggedIn ? <BracketViewer /> : <Navigate to="/" replace state={{ from: window.location.pathname }} />} 
           />
         </Routes>
       </div>
@@ -86,13 +92,13 @@ function App() {
   )
 }
 
-// Wrap the App component with the AuthProvider
-function AppWithAuth() {
+// App wrapper with AuthProvider
+function App() {
   return (
     <AuthProvider>
-      <App />
+      <AppContent />
     </AuthProvider>
   )
 }
 
-export default AppWithAuth
+export default App

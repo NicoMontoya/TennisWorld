@@ -82,8 +82,8 @@ const Register = () => {
       const result = await register(userData)
       
       if (result.success) {
-        // Registration successful, navigate to welcome page
-        navigate('/welcome')
+        // Registration successful, navigate to dashboard
+        navigate('/dashboard')
       } else {
         // Registration failed, show error
         setServerError(result.message)

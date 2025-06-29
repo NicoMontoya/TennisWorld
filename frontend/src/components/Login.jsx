@@ -13,8 +13,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Get the redirect path from location state, or default to '/profile'
-  const from = location.state?.from || '/profile';
+  // Get the redirect path from location state, or default to '/dashboard'
+  const from = location.state?.from || '/dashboard';
 
   const handleChange = (e) => {
     setFormData({

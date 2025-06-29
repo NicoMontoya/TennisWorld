@@ -9,7 +9,10 @@ import {
   createUserBracket,
   updateUserBracket,
   deleteUserBracket,
-  getTournamentLeaderboard
+  getTournamentLeaderboard,
+  getDashboardData,
+  getUserStats,
+  getUserRecommendations
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -23,6 +26,11 @@ router.get('/brackets/leaderboard/:tournamentId', getTournamentLeaderboard);
 // Protected routes
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
+
+// Dashboard routes
+router.get('/dashboard', protect, getDashboardData);
+router.get('/stats', protect, getUserStats);
+router.get('/recommendations', protect, getUserRecommendations);
 
 // Bracket routes
 router.get('/brackets', protect, getUserBrackets);

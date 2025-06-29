@@ -2,6 +2,11 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import UserBracket from '../models/UserBracket.js';
+import Player from '../models/Player.js';
+import Tournament from '../models/Tournament.js';
+import Match from '../models/Match.js';
+import UserPrediction from '../models/UserPrediction.js';
+import PredictionLeaderboard from '../models/PredictionLeaderboard.js';
 
 // Generate JWT
 const generateToken = (id) => {
@@ -588,6 +593,262 @@ export const getTournamentLeaderboard = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error while fetching tournament leaderboard',
+    });
+  }
+};
+
+// @desc    Get dashboard data
+// @route   GET /api/users/dashboard
+// @access  Private
+export const getDashboardData = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    // Get user's prediction stats
+    const userPredictions = await UserPrediction.find({ user_id: req.user.user_id });
+    const totalPredictions = userPredictions.length;
+    const correctPredictions = userPredictions.filter(p => p.is_correct === true).length;
+    const accuracyPercentage = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+
+    // Get user's rank from leaderboard
+    const leaderboard = await PredictionLeaderboard.findOne({ 
+      timeframe: 'Season',
+      season: new Date().getFullYear()
+    });
+    
+    let userRank = null;
+    if (leaderboard && leaderboard.rankings) {
+      const userRanking = leaderboard.rankings.find(r => r.user_id === req.user.user_id);
+      userRank = userRanking ? userRanking.rank : null;
+    }
+
+    // Get favorite players with current rankings
+    const favoritePlayerIds = user.preferences?.favorite_players || [];
+    const favoritePlayers = [];
+    
+    if (favoritePlayerIds.length > 0) {
+      const players = await Player.find({ 
+        player_id: { $in: favoritePlayerIds.slice(0, 3) } 
+      }).limit(3);
+      favoritePlayers.push(...players);
+    }
+
+    // Get upcoming tournaments
+    const upcomingTournaments = await Tournament.find({ 
+      status: { $in: ['Upcoming', 'Ongoing'] },
+      start_date: { $gte: new Date() }
+    })
+    .sort({ start_date: 1 })
+    .limit(3);
+
+    // Get user's recent brackets
+    const recentBrackets = await UserBracket.find({ user_id: req.user.user_id })
+      .sort({ last_updated: -1 })
+      .limit(3);
+
+    // Get upcoming matches for favorite players
+    const upcomingMatches = await Match.find({
+      $or: [
+        { player1_id: { $in: favoritePlayerIds } },
+        { player2_id: { $in: favoritePlayerIds } }
+      ],
+      status: 'Scheduled',
+      match_date: { $gte: new Date() }
+    })
+    .sort({ match_date: 1 })
+    .limit(5);
+
+    // Calculate days since registration
+    const daysSinceRegistration = Math.floor(
+      (new Date() - new Date(user.registration_date)) / (1000 * 60 * 60 * 24)
+    );
+
+    const dashboardData = {
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        account_type: user.account_type,
+        registration_date: user.registration_date,
+        last_login: user.last_login,
+        days_since_registration: daysSinceRegistration
+      },
+      stats: {
+        total_predictions: totalPredictions,
+        correct_predictions: correctPredictions,
+        accuracy_percentage: accuracyPercentage,
+        points: user.prediction_stats?.points || 0,
+        rank: userRank,
+        brackets_created: recentBrackets.length
+      },
+      favorite_players: favoritePlayers,
+      upcoming_tournaments: upcomingTournaments,
+      recent_brackets: recentBrackets,
+      upcoming_matches: upcomingMatches,
+      activity: {
+        last_viewed_players: user.activity?.last_viewed_players || [],
+        last_viewed_tournaments: user.activity?.last_viewed_tournaments || [],
+        last_viewed_matches: user.activity?.last_viewed_matches || []
+      }
+    };
+
+    res.json({
+      status: 'success',
+      data: dashboardData,
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching dashboard data',
+    });
+  }
+};
+
+// @desc    Get user statistics
+// @route   GET /api/users/stats
+// @access  Private
+export const getUserStats = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    // Get detailed prediction statistics
+    const userPredictions = await UserPrediction.find({ user_id: req.user.user_id });
+    const totalPredictions = userPredictions.length;
+    const correctPredictions = userPredictions.filter(p => p.is_correct === true).length;
+    const accuracyPercentage = totalPredictions > 0 ? Math.round((correctPredictions / totalPredictions) * 100) : 0;
+
+    // Get predictions by confidence level
+    const predictionsByConfidence = userPredictions.reduce((acc, pred) => {
+      const confidence = pred.confidence_level || 5;
+      const range = confidence <= 3 ? 'low' : confidence <= 7 ? 'medium' : 'high';
+      if (!acc[range]) acc[range] = { total: 0, correct: 0 };
+      acc[range].total++;
+      if (pred.is_correct) acc[range].correct++;
+      return acc;
+    }, {});
+
+    // Get user's brackets statistics
+    const userBrackets = await UserBracket.find({ user_id: req.user.user_id });
+    const bracketsStats = {
+      total: userBrackets.length,
+      draft: userBrackets.filter(b => b.status === 'draft').length,
+      submitted: userBrackets.filter(b => b.status === 'submitted').length,
+      locked: userBrackets.filter(b => b.status === 'locked').length
+    };
+
+    // Calculate activity metrics
+    const activityMetrics = {
+      total_player_views: user.activity?.last_viewed_players?.length || 0,
+      total_tournament_views: user.activity?.last_viewed_tournaments?.length || 0,
+      total_match_views: user.activity?.last_viewed_matches?.length || 0,
+      favorite_players_count: user.preferences?.favorite_players?.length || 0,
+      favorite_tournaments_count: user.preferences?.favorite_tournaments?.length || 0
+    };
+
+    const stats = {
+      predictions: {
+        total: totalPredictions,
+        correct: correctPredictions,
+        accuracy_percentage: accuracyPercentage,
+        by_confidence: predictionsByConfidence,
+        points: user.prediction_stats?.points || 0
+      },
+      brackets: bracketsStats,
+      activity: activityMetrics,
+      account: {
+        days_active: Math.floor((new Date() - new Date(user.registration_date)) / (1000 * 60 * 60 * 24)),
+        account_type: user.account_type,
+        last_login: user.last_login
+      }
+    };
+
+    res.json({
+      status: 'success',
+      data: { stats },
+    });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching user stats',
+    });
+  }
+};
+
+// @desc    Get personalized recommendations
+// @route   GET /api/users/recommendations
+// @access  Private
+export const getUserRecommendations = async (req, res) => {
+  try {
+    const user = await User.findOne({ user_id: req.user.user_id }).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    const favoritePlayerIds = user.preferences?.favorite_players || [];
+    const favoriteTournamentIds = user.preferences?.favorite_tournaments || [];
+    const preferredSurfaces = user.preferences?.preferred_surfaces || [];
+
+    // Recommend players based on preferences
+    const recommendedPlayers = await Player.find({
+      player_id: { $nin: favoritePlayerIds }, // Exclude already favorite players
+      rank: { $lte: 50 } // Top 50 players
+    }).limit(5);
+
+    // Recommend tournaments based on preferences and upcoming dates
+    const recommendedTournaments = await Tournament.find({
+      tournament_id: { $nin: favoriteTournamentIds },
+      status: { $in: ['Upcoming', 'Ongoing'] },
+      start_date: { $gte: new Date() },
+      ...(preferredSurfaces.length > 0 && { surface: { $in: preferredSurfaces } })
+    })
+    .sort({ start_date: 1 })
+    .limit(5);
+
+    // Recommend matches featuring top players
+    const recommendedMatches = await Match.find({
+      status: 'Scheduled',
+      match_date: { $gte: new Date() }
+    })
+    .sort({ match_date: 1 })
+    .limit(5);
+
+    const recommendations = {
+      players: recommendedPlayers,
+      tournaments: recommendedTournaments,
+      matches: recommendedMatches,
+      surfaces_to_explore: ['Hard', 'Clay', 'Grass'].filter(s => !preferredSurfaces.includes(s))
+    };
+
+    res.json({
+      status: 'success',
+      data: { recommendations },
+    });
+  } catch (error) {
+    console.error('Error fetching user recommendations:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error while fetching user recommendations',
     });
   }
 };
